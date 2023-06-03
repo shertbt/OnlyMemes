@@ -1,0 +1,46 @@
+{%extends "base.html" %}
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="people-nearby">
+                {% for search_user in users %}
+                    <div class="nearby-user">
+                    <div class="row">
+                        <div class="col-md-2 col-sm-2">
+                            <img src="{{ search_user.avatar(128) }}" alt="user" class="profile-photo-lg">
+                        </div>
+                        <div class="col-md-7 col-sm-7">
+                            <h5><a href="{{url_for('views.user', username=search_user.username) }}" class="profile-link">{{search_user.username}}</a></h5>
+                            {% if search_user.about_me %}<p>{{ search_user.about_me }}</p>{% endif %}
+                        </div>
+                        <div class="col-md-3 col-sm-3">
+                        {% if current_user != search_user %}
+                
+                            {% if not current_user.is_following(search_user) %}
+                            <p>
+                                <form action="{{ url_for('views.follow', username=search_user.username) }}" method="post">
+                                    {{ form.hidden_tag() }}
+                                    <button type="submit" class="btn btn-outline-secondary">Follow</button>
+                                </form>
+                            </p>
+                            {% else %}
+                            <p>
+                                <form action="{{ url_for('views.unfollow', username=search_user.username) }}" method="post">
+                                    {{ form.hidden_tag() }}
+                                    <button type="submit" class="btn btn-outline-secondary">Unfollow</button>
+                                </form>
+                            </p>
+                            {% endif %}
+                        {% endif %}
+                        </div>
+                    </div>
+                    </div>
+                
+                {% endfor %}    
+              
+            </div>
+    	</div>
+	</div>
+</div>
+{% endblock %}
