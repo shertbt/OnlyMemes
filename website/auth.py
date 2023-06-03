@@ -19,20 +19,11 @@ def login():
             return redirect(url_for('auth.login'))
         login_user(user, remember=form.remember_me.data)
         next_page = request.args.get('next')
-        #if not next_page or url_parse(next_page).netloc != '':
-        #   next_page = url_for('views.home')
-        #template = '''
-        #<!DOCTYPE html>
-        #<html>
-         # <head>
-         #   <title>No Filter</title>
-         # </head>
-         # <body>
-          #  <p> No such page ''' + next_page + '''</p>
-        #  </body>
-        #</html>'''
+        if not next_page or url_parse(next_page).netloc != '':
+           next_page = url_for('views.home')
 
-        #return render_template_string(template)
+        message = "Hello! "+ user.username + ", here is your token: {}".format(user.token)
+        flash(message)
         return redirect(next_page)
     return render_template('login.html', title='Sign In', form=form, user=current_user)
 
@@ -44,9 +35,10 @@ def sign_up():
     if form.validate_on_submit():
         user = User(username=form.username.data, email=form.email.data)
         user.set_password(form.password.data)
+        user.get_token(user.username)
         db.session.add(user)
         db.session.commit()
-        flash('Congratulations, you are now a registered user!')
+        flash("Congratulations, you are now a registered user! Here is your token: {}".format(user.token))
         return redirect(url_for('views.home'))
     return render_template('signup.html', title='Register', form=form,user=current_user)
 

@@ -17,6 +17,7 @@
                 <p>
                     <form action="{{ url_for('views.follow', username=user.username) }}" method="post">
                         {{ form.hidden_tag() }}
+                        <input type="text" class="form-control" placeholder="Token" aria-label="Token" aria-describedby="basic-addon1" name="token" >
                         <button type="submit" class="btn btn-outline-secondary">Follow</button>
                     </form>
                 </p>

@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for
 from flask_login import login_required, current_user
 from .models import Post, User
 from . import db
-from .forms import LoginForm, RegistrationForm, EditProfileForm, EmptyForm, PostForm
+from .forms import LoginForm, RegistrationForm, EditProfileForm, EmptyForm, PostForm,TokenForm
 from sqlalchemy import text
 views = Blueprint("views", __name__)
 
@@ -81,8 +81,9 @@ def edit_profile():
 @views.route('/follow/<username>', methods=['POST'])
 @login_required
 def follow(username):
-    form = EmptyForm()
+    form = TokenForm()
     if form.validate_on_submit():
+        token=form.token.data
         user = User.query.filter_by(username=username).first()
         if user is None:
             flash('User {} not found.'.format(username))
@@ -90,10 +91,14 @@ def follow(username):
         if user == current_user:
             flash('You cannot follow yourself!')
             return redirect(url_for('user', username=username))
-        current_user.follow(user)
-        db.session.commit()
-        flash('You are following {}!'.format(username))
-        return redirect(url_for('views.user', username=username))
+        if token==user.token:
+            current_user.follow(user)
+            db.session.commit()
+            flash('You are following {}!'.format(username))
+            return redirect(url_for('views.user', username=username))
+        else:
+            flash('Wrong token!')
+            return redirect(url_for('views.home'))
     else:
         return redirect(url_for('views.home'))
 
@@ -129,24 +134,21 @@ def search():
     search = ""
     order = None
     if "search" in request.form:
-        search = request.form["search"]
-    if search != "":
-        if "order" in request.form:
-            order = request.form["order"]
-        if order is None:
-            users = User.query.filter(User.username.like("%{}%".format(search)))
-        
-        else:
-            users = User.query.filter(
+        search = request.form["search"] 
+    if "order" in request.form:
+        order = request.form["order"]
+    if order is None:
+        users = User.query.filter(User.username.like("%{}%".format(search)))
+    else:
+        users = User.query.filter(
                 User.username.like("%{}%".format(search))
             ).order_by(text(order))
-        if users is None:
-            flash('User {} not found.'.format(search))
-            return redirect(url_for('views.home'))
-        else:
-            return render_template("usersList.html",current_user=current_user,users=users)
-    else:
+    if users is None:
+        flash('User {} not found.'.format(search))
         return redirect(url_for('views.home'))
+    else:
+        return render_template("usersList.html",current_user=current_user,users=users)
+    
 
     '''  form=SearchForm()
     if form.validate_on_submit():

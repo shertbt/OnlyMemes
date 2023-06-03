@@ -15,6 +15,7 @@ class User(db.Model, UserMixin):
     username = db.Column(db.String(150), unique=True)
     password = db.Column(db.String(150))
     about_me = db.Column(db.String(140))
+    token = db.Column(db.String(150))
     date_created = db.Column(db.DateTime(timezone=True), default=func.now())
     posts = db.relationship('Post', backref='user', passive_deletes=True)
     followed = db.relationship(
@@ -32,6 +33,9 @@ class User(db.Model, UserMixin):
     def check_password(self, password):
         return check_password_hash(self.password, password)
     
+    def get_token(self,str):
+        self.token =  int.from_bytes(str.encode(), byteorder='big')
+
     def avatar(self, size):
         digest = md5(self.email.lower().encode('utf-8')).hexdigest()
         return 'https://www.gravatar.com/avatar/{}?d=identicon&s={}'.format(

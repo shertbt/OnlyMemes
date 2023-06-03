@@ -58,3 +58,7 @@ class PostForm(FlaskForm):
     title = StringField('Title', validators=[DataRequired()])
     text = StringField('Text', validators=[DataRequired()],widget=TextArea())
     submit = SubmitField('Submit')
+
+class TokenForm(FlaskForm):
+    token = StringField("Token")
+    submit = SubmitField('Submit')
