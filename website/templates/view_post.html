@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content%}
+<div class="card border-dark text-center">
+    <div class="card-header">
+       <a href="/user/{{post.user.username}}">{{author}}</a>
+    </div>
+    <div class="card-body">
+      <h5 class="card-title">{{post.title}}</h5>
+      <p class="card-text">{{post.text}}</p>
+    </div>
+    <div class="card-footer text-muted">
+        {{post.date_created}}
+    </div>
+</div>
+<a href="{{url_for('views.home')}}" class="btn btn-outline-secondary"> Back </a>
+{% endblock %}

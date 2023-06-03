@@ -14,6 +14,12 @@ def home():
     posts = current_user.followed_posts()
     return render_template("home.html", user=current_user, posts=posts)
 
+@views.route("/post/<int:id>")
+@login_required
+def post(id):
+    post=Post.query.get_or_404(id)
+    user=User.query.get_or_404(post.author)
+    return render_template("view_post.html",post=post,author=user.username)
 
 @views.route("/create-post", methods=['GET', 'POST'])
 @login_required
