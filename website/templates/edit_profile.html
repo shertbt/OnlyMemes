@@ -18,6 +18,15 @@
             <span style="color: red;">[{{ error }}]</span>
             {% endfor %}
         </p>
+        <p>           
+            {{ form.about_me_privacy.label }}<br>
+            {% for subfield in form.about_me_privacy %}
+                <tr>
+                    <td>{{ subfield }}</td>
+                    <td>{{ subfield.label }}</td>
+                </tr>
+                {% endfor %}            
+        </p>
         <p>{{ form.submit() }}</p>
     </form>
 {% endblock %}

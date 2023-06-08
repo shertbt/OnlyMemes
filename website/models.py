@@ -15,6 +15,7 @@ class User(db.Model, UserMixin):
     username = db.Column(db.String(150), unique=True)
     password = db.Column(db.String(150))
     about_me = db.Column(db.String(140))
+    about_me_privacy = db.Column(db.String(5))
     token = db.Column(db.String(150))
     date_created = db.Column(db.DateTime(timezone=True), default=func.now())
     posts = db.relationship('Post', backref='user', passive_deletes=True)

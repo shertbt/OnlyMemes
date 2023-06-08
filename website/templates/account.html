@@ -6,7 +6,9 @@
             <td><img src="{{ user.avatar(128) }}"></td>
             <td>
                 <h1>User: {{ user.username }}</h1>
-                {% if user.about_me %}<p>{{ user.about_me }}</p>{% endif %}
+                {% if user.about_me and ((user.about_me_privacy == "1")  or (current_user.is_following(user) and user.about_me_privacy == "2") or (user == current_user))%}
+                <p>{{ user.about_me }}</p>
+                {% endif %}
                 <a href="{{url_for('views.showFollowers', username = user.username)}}" class="btn btn-outline-primary btn-sm">
                 {{ user.followers.count() }} followers</a> 
                 <a href="{{url_for('views.showFollowing', username = user.username)}}" class="btn btn-outline-primary btn-sm">

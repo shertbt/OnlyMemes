@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, \
-    TextAreaField
+    TextAreaField, RadioField
 from wtforms.validators import ValidationError, DataRequired, Email, EqualTo, \
     Length
 from .models import User
@@ -35,6 +35,7 @@ class RegistrationForm(FlaskForm):
 class EditProfileForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired()])
     about_me = TextAreaField('About me', validators=[Length(min=0, max=140)])
+    about_me_privacy = RadioField('accessible to:', choices=[('1','all users'),('2','folowers'), ('3','only me')], default = '1', validators=[DataRequired()])
     submit = SubmitField('Submit')
 
     def __init__(self, original_username, *args, **kwargs):
