@@ -2,8 +2,10 @@ from . import db
 from flask_login import UserMixin
 from sqlalchemy.sql import func
 from hashlib import md5
+import bcrypt
 from werkzeug.security import generate_password_hash, check_password_hash
 
+pepper = "$2b$12$1gUiRuxbLsODzGi6LNs5Du4e3aca00b74feb1e30ab896b3c8b00?Lk#UH?9v*^XaS*!Tm8%DHY79e!Tm8%DHY79e3L="
 followers = db.Table(
     'followers',
     db.Column('follower_id', db.Integer, db.ForeignKey('user.id')),
@@ -17,6 +19,7 @@ class User(db.Model, UserMixin):
     about_me = db.Column(db.String(140))
     about_me_privacy = db.Column(db.String(5))
     token = db.Column(db.String(150))
+    salt = db.Column(db.String(50))
     date_created = db.Column(db.DateTime(timezone=True), default=func.now())
     posts = db.relationship('Post', backref='user', passive_deletes=True)
     followed = db.relationship(
@@ -29,10 +32,11 @@ class User(db.Model, UserMixin):
         return '<User {}>'.format(self.username)
     
     def set_password(self, password):
-        self.password = generate_password_hash(password)
+        self.salt = bcrypt.gensalt()
+        self.password = bcrypt.hashpw((pepper+password).encode('utf-8'), self.salt)
 
     def check_password(self, password):
-        return check_password_hash(self.password, password)
+        return self.password == bcrypt.hashpw((pepper+password).encode('utf-8'), self.salt)
     
     def get_token(self,str):
         self.token =  int.from_bytes(str.encode(), byteorder='big')
