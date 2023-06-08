@@ -7,7 +7,9 @@
     <div class="card-body">
       <h5 class="card-title">{{post.title}}</h5>
       <p class="card-text">{{post.text}}</p>
+      {% if post.image_name %}
       <img src=" {{ url_for('views.get_image', filename=post.image_name) }}" >
+      {% endif %}
     </div>
     <div class="card-footer text-muted">
         {{post.date_created}}

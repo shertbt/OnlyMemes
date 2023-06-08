@@ -38,9 +38,11 @@ def create_post():
         text=form.text.data
         title=form.title.data
         image = request.files['file']
-        image_name=str(uuid.uuid4()) + image.filename
-        path = os.getcwd() + "/images"
-        image.save(os.path.join(path, image_name))
+        if (image.filename):
+            image_name=str(uuid.uuid4()) + image.filename
+            path = os.getcwd() + "/images"
+            image.save(os.path.join(path, image_name))
+        else: image_name = None
         post = Post(title=title,text=text,image_name=image_name, author=current_user.id)
         db.session.add(post)
         db.session.commit()
