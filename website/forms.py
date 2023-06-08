@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, \
-    TextAreaField, RadioField
+    TextAreaField, RadioField, FileField
 from wtforms.validators import ValidationError, DataRequired, Email, EqualTo, \
     Length
 from .models import User
@@ -58,6 +58,7 @@ class EmptyForm(FlaskForm):
 class PostForm(FlaskForm):
     title = StringField('Title', validators=[DataRequired()])
     text = StringField('Text', validators=[DataRequired()],widget=TextArea())
+    image_name = FileField('Image File')
     submit = SubmitField('Submit')
 
 class TokenForm(FlaskForm):

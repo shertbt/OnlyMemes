@@ -74,5 +74,6 @@ class Post(db.Model):
     title = db.Column(db.Text, nullable=False)
     text = db.Column(db.Text, nullable=False)
     date_created = db.Column(db.DateTime(timezone=True), default=func.now())
+    image_name = db.Column(db.String(120), nullable=True)
     author = db.Column(db.Integer, db.ForeignKey(
         'user.id', ondelete="CASCADE"), nullable=False)

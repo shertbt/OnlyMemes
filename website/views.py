@@ -1,9 +1,10 @@
-from flask import Blueprint, render_template, request, flash, redirect, url_for
+from flask import Blueprint, render_template, request, flash, redirect, url_for, send_file
 from flask_login import login_required, current_user
 from .models import Post, User
 from . import db
 from .forms import LoginForm, RegistrationForm, EditProfileForm, EmptyForm, PostForm,TokenForm
 from sqlalchemy import text
+import os, uuid
 views = Blueprint("views", __name__)
 
 
@@ -13,6 +14,14 @@ views = Blueprint("views", __name__)
 def home():
     posts = current_user.followed_posts()
     return render_template("home.html", user=current_user, posts=posts)
+
+@views.route("/images/<filename>")
+@login_required
+def get_image(filename):   
+    #item_image_raw = requests.get(f"http://file-server:10101/file?image_name={filename}",headers= {"ACCESS_APIKEY": current_app.config["ACCESS_APIKEY"]})
+    #return send_file(item_image_raw.content)
+    path = os.getcwd() + "/images/" + filename   
+    return send_file(path)
 
 @views.route("/post/<int:id>")
 @login_required
@@ -28,7 +37,11 @@ def create_post():
     if form.validate_on_submit():
         text=form.text.data
         title=form.title.data
-        post = Post(title=title,text=text, author=current_user.id)
+        image = request.files['file']
+        image_name=str(uuid.uuid4()) + image.filename
+        path = os.getcwd() + "/images"
+        image.save(os.path.join(path, image_name))
+        post = Post(title=title,text=text,image_name=image_name, author=current_user.id)
         db.session.add(post)
         db.session.commit()
         flash('Post created!', category='success')
