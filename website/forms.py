@@ -58,7 +58,7 @@ class EmptyForm(FlaskForm):
 class PostForm(FlaskForm):
     title = StringField('Title', validators=[DataRequired()])
     text = StringField('Text', validators=[DataRequired()],widget=TextArea())
-    image_name = FileField('Image File')
+    picture = FileField('Image File')
     submit = SubmitField('Submit')
 
 class TokenForm(FlaskForm):

@@ -5,8 +5,23 @@ from . import db
 from .forms import LoginForm, RegistrationForm, EditProfileForm, EmptyForm, PostForm,TokenForm
 from sqlalchemy import text
 import os, uuid
+import requests
 views = Blueprint("views", __name__)
 
+IMAGE_LOAD_URL="http://127.0.0.1:8080"
+
+@views.route("/image/<filename>")
+@login_required
+def get_image(filename):
+    try:
+        image_url = IMAGE_LOAD_URL+'/download/'+filename
+        response = requests.get(image_url)
+        if response.status_code != 200:
+            raise Exception
+        else:
+            return response 
+    except Exception:
+        return None
 
 @views.route("/")
 @views.route("/home")
@@ -14,14 +29,6 @@ views = Blueprint("views", __name__)
 def home():
     posts = current_user.followed_posts()
     return render_template("home.html", user=current_user, posts=posts)
-
-@views.route("/images/<filename>")
-@login_required
-def get_image(filename):   
-    #item_image_raw = requests.get(f"http://file-server:10101/file?image_name={filename}",headers= {"ACCESS_APIKEY": current_app.config["ACCESS_APIKEY"]})
-    #return send_file(item_image_raw.content)
-    path = os.getcwd() + "/images/" + filename   
-    return send_file(path)
 
 @views.route("/post/<int:id>")
 @login_required
@@ -37,17 +44,28 @@ def create_post():
     if form.validate_on_submit():
         text=form.text.data
         title=form.title.data
-        image = request.files['file']
-        if (image.filename):
-            image_name=str(uuid.uuid4()) + image.filename
-            path = os.getcwd() + "/images"
-            image.save(os.path.join(path, image_name))
-        else: image_name = None
-        post = Post(title=title,text=text,image_name=image_name, author=current_user.id)
-        db.session.add(post)
-        db.session.commit()
-        flash('Post created!', category='success')
-        return redirect(url_for('views.home'))
+        if form.picture.data:
+            try:
+                image_url = IMAGE_LOAD_URL+'/upload'
+                post_response = requests.post(image_url,
+                                    files={'file': form.picture.data})
+                if post_response.status_code != 200:
+                    raise Exception
+                else:
+                    picture_file = post_response.json().get('image_name')
+                    post = Post(title=title,text=text,image_name=picture_file, author=current_user.id)
+                    db.session.add(post)
+                    db.session.commit()
+                    flash('Post created!', category='success')
+                    return redirect(url_for('views.home'))
+            except Exception:
+                flash('Try again!', category='success') 
+        else:
+            post = Post(title=title,text=text,image_name=None, author=current_user.id)
+            db.session.add(post)
+            db.session.commit()
+            flash('Post created!', category='success')
+            return redirect(url_for('views.home'))
 
     return render_template('create_post.html',form=form, user=current_user)
 
