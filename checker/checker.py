@@ -17,6 +17,8 @@ from bs4 import BeautifulSoup
 from generator import string_to_bf
 import pytesseract                                                                                                  
 from PIL import Image, ImageDraw, ImageFont 
+import shutil
+
 
 random = random.SystemRandom()
 
@@ -32,9 +34,9 @@ TRACE = os.getenv("TRACE", False)
 """ </config> """
 
 
-# check: edit "about me" (3 mode) displayed for: 1)all; 2)followers; 3)only me
+# check: create "about me" (3 mode) displayed for: 1)all; 2)followers; 3)only me -> get bio
 # check: create post -> get post
-# check: ???check imageserver???
+# check: check upload image to imageserver
 # check: users are displayed in searchList in two orders (reg 2 users and check them in search)
 # check: followers & following are displayed
 def check(host: str):
@@ -45,7 +47,7 @@ def check(host: str):
 
     _log(f'Going to create bio "{username}"')
     bio = gen_bio()
-    bio_priv = str(random.randint(1,2))
+    bio_priv = str(random.randint(1,3))
     create_bio(s, username, bio, bio_priv)
     if bio not in check_bio(s, username, bio_priv, token, host):
        die(ExitStatus.CORRUPT, "Incorrect flag")
@@ -56,6 +58,10 @@ def check(host: str):
     _log(f"Going to check post '{username}' as follower")
     if text not in get_post(username, token, post_id, host):
         die(ExitStatus.CORRUPT, "Incorrect flag")
+
+    _log(f"Going to create post with image '{username}' ")
+    text = gen_title()
+    post_id = post_picture(s, text) 
     
     _log("Check users in searchList")
     if not check_usersList(s, username, host):
@@ -316,6 +322,52 @@ def gen_bio():
         bio += r.get_random_word() + " "
     return bio
 
+def post_picture(s, flag):
+    img = Image.new(mode="RGB", size=(700,100), color='white')
+    draw = ImageDraw.Draw(img)
+    font = ImageFont.truetype('arial.ttf', 28)                                                                                    
+    draw.text((10, 10), flag, font=font, fill='black')
+        
+    img.save("123.png")
+    
+    r = s.get('/create-post') 
+    csrf_token = re.search(r'<input id="csrf_token" name="csrf_token" type="hidden" value="(.*)">', r.text).group(1)
+
+    try:
+        with open('123.png', 'rb') as f:
+            r = s.post("/create-post", 
+                            files = {'picture': f}, 
+                            data = dict(title= gen_title(), text = "...", csrf_token=csrf_token))
+        post_id = re.search(r'<a href="/post/(.*)" class="btn btn-outline-secondary"> View post </a>', r.text).group(1)
+    
+    except Exception as e:
+        die(ExitStatus.DOWN, f"Failed to upload image: {e}")
+    if r.status_code != 200:
+        die(ExitStatus.CORRUPT, f"Unexpected  /create-post code {r.status_code}")
+    return post_id
+
+def get_text_from_image(username, token, flag_id, host):
+    s2 = FakeSession(host, PORT)
+    username2, email2, password2 = create_user()
+    token2 = sign_up(s2, username2, email2, password2)
+    login(s2, username2, password2)
+
+    r2 = s2.get('/home') 
+    csrf_token = re.search(r'<input id="csrf_token" name="csrf_token" type="hidden" value="(.*)">', r2.text).group(1)
+    r2= s2.post(f'/follow/{username}', data = {'token': token, 'csrf_token':csrf_token})
+
+    r2 = s2.get(f"/post/{flag_id}")
+
+    image_name = re.search(r'<img src=" /image/(.*)" >', r2.text).group(1)
+    
+    r2 = s2.get(f"/image/{image_name}")
+    if r2.status_code == 200:
+        with open("321.png", 'wb') as f:
+            f.write(r2.content)
+      
+    text =  pytesseract.image_to_string('321.png')
+    return text  
+
 def put(hostname: str, flag: str, vuln: str):
     s = FakeSession(hostname, PORT)
     username, email, password = create_user()
@@ -374,34 +426,22 @@ def put(hostname: str, flag: str, vuln: str):
 
     #5. flag in post as image
     if vuln == "5":
-        img = Image.new(mode="RGB", size=(700,200), color='black')
-        draw = ImageDraw.Draw(img)
-        font = ImageFont.truetype('arial.ttf', 30)                                                                                       
-        draw.text((10, 10), flag, font=font, fill='white')
-        flag_post_id = post_text(s, 'ЗДЕСЬ ДОЛЖНА БЫТЬ КАРТИНКА')
-        img.save("123.png")
+        
+        flag_post_id = post_picture(s, flag)
         data = json.dumps({
         "flag_id": flag_post_id,
         "username": username,
         "token": token
         })
-        
-
-        #r = s.get('/create-post') 
-        #csrf_token = re.search(r'<input id="csrf_token" name="csrf_token" type="hidden" value="(.*)">', r.text).group(1)
-        #r = s.post("/create-post", files = {"files[]":('1.png', byte_io, 'image/png')} , data = dict(title= gen_title(), text =gen_text(), csrf_token=csrf_token))
-        
+            
         print(data, flush=True)  
         die(ExitStatus.OK, f"{data}") 
 
 def get(hostname, fid, flag, vuln):
     print("START GET")
-
-    '''try:
-        #'"{'username':'...', 'token':'...'}"'
-        
+    #'{"k1": "v1", "k2":"v2"}'
+    try:     
         data = json.loads(fid)
-        print(type(fid))
         if not data:
             raise ValueError
     except:
@@ -409,40 +449,39 @@ def get(hostname, fid, flag, vuln):
             ExitStatus.CHECKER_ERROR,
             f"Unexpected flagID from jury: {fid}! Are u using non-RuCTF checksystem?",
         )
-    '''
-
+    
     if vuln not in '12345':   
         die(ExitStatus.DOWN,f'Checker error, Unexpected vuln value: {vuln}')
 
     s = FakeSession(hostname, PORT)
     if vuln == "1":
-        username = fid.split(" ")[0]
-        password = fid.split(" ")[1]
+        username = data['username']
+        password = data['password']
         login(s, username, password)
         if flag not in check_bio(s, username, "3"):
             die(ExitStatus.CORRUPT, f"Can't find a flag {username} in bio")  
         die(ExitStatus.OK, f"All OK! Successfully retrieved a flag from bio")
 
     if vuln == "2":
-        username = fid.split(" ")[0]
-        token = fid.split(" ")[1]
+        username = data['username']
+        token = data['token']
         if flag not in check_bio(s, username, "2", token, hostname):
             die(ExitStatus.CORRUPT, f"Can't find a flag {username} in bio")  
         die(ExitStatus.OK, f"All OK! Successfully retrieved a flag from bio")
     
     if vuln == "3":
-        flag_id = fid.split(" ")[0]
-        username = fid.split(" ")[1]
-        token = fid.split(" ")[2]
+        flag_id = data['flag_id']
+        username = data['username']
+        token = data['token']
 
         if flag not in get_post(username, token, flag_id, hostname):
             die(ExitStatus.CORRUPT, f"Can't find a flag {username} in posts")  
         die(ExitStatus.OK, f"All OK! Successfully retrieved a flag from posts")
 
     if vuln == "4":
-        flag_id = fid.split(" ")[0]
-        username = fid.split(" ")[1]
-        token = fid.split(" ")[2]
+        flag_id = data['flag_id']
+        username = data['username']
+        token = data['token']
         brainflag = string_to_bf(flag, False)
 
         if brainflag not in get_post(username, token, flag_id, hostname):
@@ -450,7 +489,12 @@ def get(hostname, fid, flag, vuln):
         die(ExitStatus.OK, f"All OK! Successfully retrieved a flag from posts")
     
     if vuln == "5":
-        pass
+        flag_id = data['flag_id']
+        username = data['username']
+        token = data['token']
+        if flag[:15] not in get_text_from_image(username, token, flag_id, hostname):
+            die(ExitStatus.CORRUPT, f"Can't find a flag {username} in image post")  
+        die(ExitStatus.OK, f"All OK! Successfully retrieved a flag from image post")
 
 class FakeSession(requests.Session):
     """
@@ -508,7 +552,6 @@ class FakeSession(requests.Session):
             print("[TRACE] {method} {url} {r.status_code}".format(**locals()))
         return r
                 
-
 def info():
     print("vulns: 3:3:1:2:2", flush=True, end="")
     exit(101)
