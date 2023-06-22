@@ -5,7 +5,7 @@ from hashlib import md5
 import bcrypt
 from werkzeug.security import generate_password_hash, check_password_hash
 
-pepper = "$2b$12$1gUiRuxbLsODzGi6LNs5Du4e3aca00b74feb1e30ab896b3c8b00?Lk#UH?9v*^XaS*!Tm8%DHY79e!Tm8%DHY79e3L="
+pepper = "$2b$12$1gUiRuxbLsODzGi6LNs5Du4e3aca00b74feb1e30ab896b3c8b00?Lk#UH?9v*^="
 followers = db.Table(
     'followers',
     db.Column('follower_id', db.Integer, db.ForeignKey('user.id')),

