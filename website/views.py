@@ -17,13 +17,21 @@ ACCESS_APIKEY = "1234"
 @views.route("/image/<filename>")
 @login_required
 def get_image(filename):
-    
-    image_url = IMAGE_LOAD_URL+'/download/'+filename
-    item_image_raw = requests.get(image_url,headers= {"ACCESS_APIKEY": ACCESS_APIKEY})
+    post = Post.query.filter_by(image_name=filename).first()
+    if not post:
+        flash("Post does not exist.", category='error')
+        return redirect(url_for('views.home'))
+    elif current_user.id == post.author or current_user.is_following(post.author):
+        image_url = IMAGE_LOAD_URL+'/download/'+filename
+        item_image_raw = requests.get(image_url,headers= {"ACCESS_APIKEY": ACCESS_APIKEY})
         
-    content_type = item_image_raw.headers.get("content-type")
-    item_image_raw = io.BytesIO(item_image_raw.content)
-    return send_file(item_image_raw, mimetype=content_type)
+        content_type = item_image_raw.headers.get("content-type")
+        item_image_raw = io.BytesIO(item_image_raw.content)
+        return send_file(item_image_raw, mimetype=content_type)
+    else:
+        flash('You do not have permission to see this image.', category='error')
+        return redirect(url_for('views.home'))
+        
    
 @views.route("/")
 @views.route("/home")
