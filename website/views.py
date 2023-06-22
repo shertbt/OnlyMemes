@@ -4,25 +4,27 @@ from .models import Post, User
 from . import db
 from .forms import LoginForm, RegistrationForm, EditProfileForm, EmptyForm, PostForm,TokenForm
 from sqlalchemy import text
-import os, uuid
+import os 
+import io
+from base64 import encode
+from PIL import Image
 import requests
 views = Blueprint("views", __name__)
 
 IMAGE_LOAD_URL="http://127.0.0.1:8080"
+ACCESS_APIKEY = "1234"
 
 @views.route("/image/<filename>")
 @login_required
 def get_image(filename):
-    try:
-        image_url = IMAGE_LOAD_URL+'/download/'+filename
-        response = requests.get(image_url)
-        if response.status_code != 200:
-            raise Exception
-        else:
-            return response 
-    except Exception:
-        return None
-
+    
+    image_url = IMAGE_LOAD_URL+'/download/'+filename
+    item_image_raw = requests.get(image_url,headers= {"ACCESS_APIKEY": ACCESS_APIKEY})
+        
+    content_type = item_image_raw.headers.get("content-type")
+    item_image_raw = io.BytesIO(item_image_raw.content)
+    return send_file(item_image_raw, mimetype=content_type)
+   
 @views.route("/")
 @views.route("/home")
 @login_required
@@ -46,9 +48,11 @@ def create_post():
         title=form.title.data
         if form.picture.data:
             try:
+                
                 image_url = IMAGE_LOAD_URL+'/upload'
                 post_response = requests.post(image_url,
-                                    files={'file': form.picture.data})
+                                    files={'file': (form.picture.data.filename, form.picture.data.stream, form.picture.data.mimetype)},
+                                    headers= {"ACCESS_APIKEY": ACCESS_APIKEY})
                 if post_response.status_code != 200:
                     raise Exception
                 else:
@@ -184,22 +188,7 @@ def search():
     else:
         return render_template("usersList.html",current_user=current_user,users=users)
     
-
-    '''  form=SearchForm()
-    if form.validate_on_submit():
-        query=form.query.data
-        users = User.query.filter(User.username.like('%' + query + '%' ))
-        if users is None:
-            flash('User {} not found.'.format(query))
-            return redirect(url_for('views.home'))
-        else:
-            users = users.order_by(User.username).all()
-            return render_template("usersList.html",current_user=current_user,users=users,form=form)
-    else:
-        return redirect(url_for('views.home'))
-    '''
-    
-    
+     
 @views.route('/user/<username>/following')
 @login_required
 def showFollowing(username):

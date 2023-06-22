@@ -21,13 +21,17 @@
       </div>
       {% endif %}
     </div>
-    <div class="card-body">
-      <h5 class="card-title">{{post.title}}</h5>
-      <h6 class="card-text">{{post.text}}</h6>
-      <h6 class="card-text">{% if post.image_name %} <img src= {{ url_for('views.get_image', filename=post.image_name)  }}> {% endif %}</h6>
-      <a href="{{url_for('views.post',id=post.id)}}" class="btn btn-outline-secondary"> View post </a>
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title">{{post.title}}</h5>
+        <h6 class="card-text">{{post.text}}</h6>
+        {% if post.image_name %} 
+        <img class="card-img-bottom" src=" {{ url_for('views.get_image', filename=post.image_name) }}" alt="Card image"> 
+        {% endif %}
+        <a href="{{url_for('views.post',id=post.id)}}" class="btn btn-outline-secondary"> View post </a>
+      </div>
+      <div class="card-footer text-muted">{{post.date_created}}</div>
     </div>
-    <div class="card-footer text-muted">{{post.date_created}}</div>
     
   </div>
   <br/ > {% endfor %}
