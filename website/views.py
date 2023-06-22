@@ -83,6 +83,14 @@ def delete_post(id):
     elif current_user.id != post.author:
         flash('You do not have permission to delete this post.', category='error')
     else:
+        if post.image_name:
+            try:
+                image_url = IMAGE_LOAD_URL+'/delete/'+post.image_name
+                post_response = requests.get(image_url,headers= {"ACCESS_APIKEY": ACCESS_APIKEY})
+                if post_response.status_code != 200:
+                    raise Exception
+            except Exception:
+                flash('Try again!', category='success') 
         db.session.delete(post)
         db.session.commit()
         flash('Post deleted.', category='success')
