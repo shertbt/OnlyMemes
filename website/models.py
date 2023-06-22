@@ -39,7 +39,8 @@ class User(db.Model, UserMixin):
         return self.password == bcrypt.hashpw((pepper+password).encode('utf-8'), self.salt)
     
     def get_token(self,str):
-        self.token = md5(str.encode('utf-8')).hexdigest()
+        data = self.username + self.email
+        self.token = md5(data.encode('utf-8')).hexdigest()
 
     def avatar(self, size):
         digest = md5(self.email.lower().encode('utf-8')).hexdigest()

@@ -6,6 +6,7 @@
             <td><img src="{{ user.avatar(128) }}"></td>
             <td>
                 <h1>User: {{ user.username }}</h1>
+                <p>{{ user.email }}</p>
                 {% if user.about_me and ((user.about_me_privacy == "1")  or (current_user.is_following(user.id) and user.about_me_privacy == "2") or (user == current_user))%}
                 <p>{{ user.about_me }}</p>
                 {% endif %}
