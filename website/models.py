@@ -39,7 +39,7 @@ class User(db.Model, UserMixin):
         return self.password == bcrypt.hashpw((pepper+password).encode('utf-8'), self.salt)
     
     def get_token(self,str):
-        self.token =  int.from_bytes(str.encode(), byteorder='big')
+        self.token = md5(str.encode('utf-8')).hexdigest()
 
     def avatar(self, size):
         digest = md5(self.email.lower().encode('utf-8')).hexdigest()
@@ -47,7 +47,7 @@ class User(db.Model, UserMixin):
             digest, size)
 
     def follow(self, user):
-        if not self.is_following(user):
+        if not self.is_following(user.id):
             self.followed.append(user)
 
     def unfollow(self, user):
