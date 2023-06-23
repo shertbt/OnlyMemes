@@ -9,8 +9,9 @@ from PIL import Image
 
 MAX_CONTENT_LENGTH = 16 * 1024 * 1024
 ALLOWED_EXTENSIONS= ['jpg', 'png']
-ACCESS_APIKEY='1234'
+
 app = Flask(__name__)
+os.makedirs(os.path.join(app.root_path, 'static\\uploads'), exist_ok=True)
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -29,8 +30,7 @@ def save_image(image):
 
 @app.route('/upload', methods=['POST'])
 def upload():
-    if request.headers.get('ACCESS_APIKEY') != ACCESS_APIKEY:
-        abort(403, "Failed authentication")
+   
     try:
         image = request.files['file']
         if image and allowed_file(image.filename):
@@ -52,8 +52,7 @@ def upload():
 
 @app.route('/download/<image_name>', methods=['GET'])
 def download(image_name):
-    if request.headers.get('ACCESS_APIKEY') != ACCESS_APIKEY:
-        abort(403, "Failed authentication")
+    
     try:
         path = os.path.join(app.root_path, 'static\\uploads', image_name)
         if not os.path.exists(path):
@@ -67,8 +66,7 @@ def download(image_name):
     
 @app.route('/delete/<image_name>', methods=['GET'])
 def delete(image_name):
-    if request.headers.get('ACCESS_APIKEY') != ACCESS_APIKEY:
-        abort(403, "Failed authentication")
+  
     try:
         path = os.path.join(app.root_path, 'static\\uploads', image_name)
         if not os.path.exists(path):

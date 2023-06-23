@@ -12,7 +12,7 @@ import requests
 views = Blueprint("views", __name__)
 
 IMAGE_LOAD_URL="http://127.0.0.1:8080"
-ACCESS_APIKEY = "1234"
+
 
 @views.route("/image/<filename>")
 @login_required
@@ -23,7 +23,7 @@ def get_image(filename):
         return redirect(url_for('views.home'))
     elif current_user.id == post.author or current_user.is_following(post.author):
         image_url = IMAGE_LOAD_URL+'/download/'+filename
-        item_image_raw = requests.get(image_url,headers= {"ACCESS_APIKEY": ACCESS_APIKEY})
+        item_image_raw = requests.get(image_url)
         
         content_type = item_image_raw.headers.get("content-type")
         item_image_raw = io.BytesIO(item_image_raw.content)
@@ -59,8 +59,7 @@ def create_post():
                 
                 image_url = IMAGE_LOAD_URL+'/upload'
                 post_response = requests.post(image_url,
-                                    files={'file': (form.picture.data.filename, form.picture.data.stream, form.picture.data.mimetype)},
-                                    headers= {"ACCESS_APIKEY": ACCESS_APIKEY})
+                                    files={'file': (form.picture.data.filename, form.picture.data.stream, form.picture.data.mimetype)})
                 if post_response.status_code != 200:
                     raise Exception
                 else:
@@ -94,7 +93,7 @@ def delete_post(id):
         if post.image_name:
             try:
                 image_url = IMAGE_LOAD_URL+'/delete/'+post.image_name
-                post_response = requests.get(image_url,headers= {"ACCESS_APIKEY": ACCESS_APIKEY})
+                post_response = requests.get(image_url)
                 if post_response.status_code != 200:
                     raise Exception
             except Exception:
