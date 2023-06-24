@@ -1,19 +1,36 @@
 {% extends "base.html" %}
 {% block content%}
-<div class="card border-dark text-center">
-    <div class="card-header">
-       <a href="/user/{{post.user.username}}">{{author}}</a>
+<div class="card border-dark">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    {% if current_user.id == post.author %}
+    <div class="btn-group">
+      <button
+        type="button"
+        class="btn btn-sm btn-primary dropdown-toggle"
+        data-bs-toggle="dropdown"
+      ></button>
+      <ul class="dropdown-menu">
+        <li>
+          <a href="/delete-post/{{post.id}}" class="dropdown-item">Delete</a>
+        </li>
+      </ul>
     </div>
+    {% endif %}
+  </div>
+  <div class="card">
     <div class="card-body">
       <h5 class="card-title">{{post.title}}</h5>
-      <p class="card-text">{{post.text}}</p>
-      {% if post.image_name %}
-      <img src=" {{ url_for('views.get_image', filename=post.image_name) }}" >
+      <h6 class="card-text">{{post.text}}</h6>
+      {% if post.image_name %} 
+      <img class="card-img-bottom" src=" {{ url_for('views.get_image', filename=post.image_name) }}" alt="Card image"> 
       {% endif %}
     </div>
-    <div class="card-footer text-muted">
-        {{post.date_created}}
-    </div>
+    <div class="card-footer text-muted">{{post.date_created}}</div>
+  </div>
 </div>
-<a href="{{url_for('views.home')}}" class="btn btn-outline-secondary"> Back </a>
+
+  <form>
+  <input type="button" value="Back" class="btn btn-outline-secondary" onclick="history.back()">
+ </form>
+
 {% endblock %}
