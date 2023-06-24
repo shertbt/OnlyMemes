@@ -6,6 +6,7 @@ from wtforms.validators import ValidationError, DataRequired, Email, EqualTo, \
 from .models import User
 from wtforms.widgets import TextArea
 
+
 class LoginForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired()])
     password = PasswordField('Password', validators=[DataRequired()])
@@ -48,9 +49,6 @@ class EditProfileForm(FlaskForm):
             if user is not None:
                 raise ValidationError('Please use a different username.')
 
-#class SearchForm(FlaskForm):
-#    query = StringField('Username', validators=[DataRequired()])
-#    submit = SubmitField('Submit')
 
 class EmptyForm(FlaskForm):
     submit = SubmitField('Submit')
@@ -59,8 +57,10 @@ class PostForm(FlaskForm):
     title = StringField('Title', validators=[DataRequired()])
     text = StringField('Text', validators=[DataRequired()],widget=TextArea())
     picture = FileField('Image File')
+    url = StringField('Url_for_image')
     submit = SubmitField('Submit')
 
+  
 class TokenForm(FlaskForm):
     token = StringField("Token")
     submit = SubmitField('Submit')

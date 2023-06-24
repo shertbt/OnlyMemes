@@ -3,12 +3,16 @@ from flask_login import login_required, current_user
 from .models import Post, User
 from . import db
 from .forms import LoginForm, RegistrationForm, EditProfileForm, EmptyForm, PostForm,TokenForm
+from werkzeug.datastructures import FileStorage
 from sqlalchemy import text
 import os 
 import io
 from base64 import encode
 from PIL import Image
 import requests
+from urllib.parse import urlparse
+from werkzeug.utils import secure_filename
+
 views = Blueprint("views", __name__)
 
 IMAGE_LOAD_URL="http://127.0.0.1:8080"
@@ -17,6 +21,7 @@ IMAGE_LOAD_URL="http://127.0.0.1:8080"
 @views.route("/image/<filename>")
 @login_required
 def get_image(filename):
+    filename = secure_filename(filename)
     post = Post.query.filter_by(image_name=filename).first()
     if not post:
         flash("Post does not exist.", category='error')
@@ -31,8 +36,7 @@ def get_image(filename):
     else:
         flash('You do not have permission to see this image.', category='error')
         return redirect(url_for('views.home'))
-        
-   
+          
 @views.route("/")
 @views.route("/home")
 @login_required
@@ -45,6 +49,7 @@ def home():
 def post(id):
     post=Post.query.get_or_404(id)
     user=User.query.get_or_404(post.author)
+    
     return render_template("view_post.html",post=post,author=user.username)
 
 @views.route("/create-post", methods=['GET', 'POST'])
@@ -56,10 +61,10 @@ def create_post():
         title=form.title.data
         if form.picture.data:
             try:
-                
+                filename=secure_filename(form.picture.data.filename)
                 image_url = IMAGE_LOAD_URL+'/upload'
                 post_response = requests.post(image_url,
-                                    files={'file': (form.picture.data.filename, form.picture.data.stream, form.picture.data.mimetype)})
+                                    files={'file': (filename, form.picture.data.stream, form.picture.data.mimetype)})
                 if post_response.status_code != 200:
                     raise Exception
                 else:
@@ -70,7 +75,27 @@ def create_post():
                     flash('Post created!', category='success')
                     return redirect(url_for('views.home'))
             except Exception:
-                flash('Try again!', category='success') 
+                flash('Try again!', category='error') 
+        elif form.url.data:
+            try:
+                response = requests.get(form.url.data)
+                filename=os.path.basename(urlparse(form.url.data).path)
+                filename=secure_filename(filename)
+                content_type = response.headers.get("content-type")
+                image_url = IMAGE_LOAD_URL+'/upload'
+                post_response = requests.post(image_url,
+                                    files={'file': (filename, io.BytesIO(response.content),content_type)})
+                if post_response.status_code != 200:
+                    raise Exception
+                else:
+                    picture_file = post_response.json().get('image_name')
+                    post = Post(title=title,text=text,image_name=picture_file, author=current_user.id)
+                    db.session.add(post)
+                    db.session.commit()
+                    flash('Post created!', category='success')
+                    return redirect(url_for('views.home'))
+            except Exception:
+                flash('Try again!', category='error') 
         else:
             post = Post(title=title,text=text,image_name=None, author=current_user.id)
             db.session.add(post)
@@ -97,7 +122,7 @@ def delete_post(id):
                 if post_response.status_code != 200:
                     raise Exception
             except Exception:
-                flash('Try again!', category='success') 
+                flash('Try again!', category='error') 
         db.session.delete(post)
         db.session.commit()
         flash('Post deleted.', category='success')

@@ -2,7 +2,8 @@ import requests
 import json
 from flask import Flask, request, jsonify, make_response,abort,send_file
 import os
-import secrets
+import time
+from hashlib import md5
 import io
 from base64 import b64encode
 from PIL import Image
@@ -19,7 +20,7 @@ def allowed_file(filename):
 
 def save_image(image):
     image_name=image.filename
-    random_hex = secrets.token_hex(16)
+    random_hex = md5(time.strftime("%Y%m%d-%H%M%S").encode()).hexdigest()
     name,ext = os.path.splitext(image_name)
     image_fn = random_hex + ext
     path = os.path.join(app.root_path, 'static\\uploads', image_fn)
@@ -28,11 +29,14 @@ def save_image(image):
 
     return image_fn
 
+
+
 @app.route('/upload', methods=['POST'])
 def upload():
-   
+    
     try:
         image = request.files['file']
+        
         if image and allowed_file(image.filename):
             name=save_image(image)
             response = {'image_name': name, 'status': 'OK'}
@@ -52,7 +56,7 @@ def upload():
 
 @app.route('/download/<image_name>', methods=['GET'])
 def download(image_name):
-    
+  
     try:
         path = os.path.join(app.root_path, 'static\\uploads', image_name)
         if not os.path.exists(path):
@@ -66,7 +70,7 @@ def download(image_name):
     
 @app.route('/delete/<image_name>', methods=['GET'])
 def delete(image_name):
-  
+    
     try:
         path = os.path.join(app.root_path, 'static\\uploads', image_name)
         if not os.path.exists(path):
