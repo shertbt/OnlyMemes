@@ -22,8 +22,9 @@
         display: block;
     }
   </style> 
-  <h1 align="center">Make a Post</h1>
   
+   
+  <h1 align="center">Make a Post</h1>
   <form method="POST" enctype="multipart/form-data">
     {{ form.hidden_tag() }}
     <div class="form-group">
@@ -39,8 +40,13 @@
       <br />
     </div>  
   
-    <div class="form-group">
+   
+    <div class="form-group" id="uploadImage" >
       {{form.picture (class="form-control")}}
+    </div>
+    
+    <div class="form-group" id="URLupload" >
+      <input placeholder="Введи URL картинки" name="url" type="text"  class="form-control" >
     </div>
     <div align="center">
       <button type="submit" class="btn btn-lg btn-primary">Post</button>
@@ -52,7 +58,5 @@
       ><button type="button" class="btn btn-lg btn-secondary">Back</button></a
     >
   </div>
-  
-  
   
   {% endblock %}
