@@ -196,9 +196,9 @@ def check_followers(s, username, host):
     return True
 
 def post_text(s, flag):
-    r = s.get('/create-post') 
-    csrf_token = re.search(r'<input id="csrf_token" name="csrf_token" type="hidden" value="(.*)">', r.text).group(1)
     try:
+        r = s.get('/create-post') 
+        csrf_token = re.search(r'<input id="csrf_token" name="csrf_token" type="hidden" value="(.*)">', r.text).group(1)
         title = gen_title()
         
         r = s.post("/create-post", data = dict(title = title, text = flag, csrf_token = csrf_token))
@@ -207,8 +207,10 @@ def post_text(s, flag):
 
     if r.status_code != 200:
         die(ExitStatus.MUMBLE, f"Unexpected  /create-post code {r.status_code}")
-
-    post_id = re.search(r'<a href="/post/(.*)" class="btn btn-outline-secondary"> View post </a>', r.text).group(1)
+    try:
+        post_id = re.search(r'<a href="/post/(.*)" class="btn btn-outline-secondary"> View post </a>', r.text).group(1)
+    except Exception as e:
+        die(ExitStatus.DOWN, f"Failed to find post_id: {e}")
     return post_id
 
 def get_post(username, token, post_id, host):
@@ -226,11 +228,10 @@ def get_post(username, token, post_id, host):
     token2 = sign_up(s2, username2, email2, password2)
     login(s2, username2, password2)
 
-    r2 = s2.get('/home') 
-    csrf_token = re.search(r'<input id="csrf_token" name="csrf_token" type="hidden" value="(.*)">', r2.text).group(1)
-    r2 = s2.post(f'/follow/{username}', data = {'token': token, 'csrf_token':csrf_token})
-
     try:
+        r2 = s2.get('/home') 
+        csrf_token = re.search(r'<input id="csrf_token" name="csrf_token" type="hidden" value="(.*)">', r2.text).group(1)
+        r2 = s2.post(f'/follow/{username}', data = {'token': token, 'csrf_token':csrf_token})
         r2 = s2.get(f"/post/{post_id}")
     except Exception as e:
         die(ExitStatus.DOWN, f"Failed to get {username} post: {e}")
@@ -238,7 +239,8 @@ def get_post(username, token, post_id, host):
         die(ExitStatus.MUMBLE, f"Unexpected  /post/{post_id} code {r.status_code}")
 
     soup = BeautifulSoup(r2.text, 'html.parser')
-    text  = [a.text for a in soup.find_all("p", class_ = "card-text")]
+    text  = [a.text for a in soup.find_all("h6", class_ = "card-text")]
+    
     
     return text
     
@@ -260,8 +262,9 @@ def create_bio(s, username, bio, bio_priv):
     if r.status_code != 200:
         die(ExitStatus.MUMBLE, f"Unexpected /edit_profile code {r.status_code}")
 
-    csrf_token = re.search(r'<input id="csrf_token" name="csrf_token" type="hidden" value="(.*)">', r.text).group(1)
+    
     try:
+        csrf_token = re.search(r'<input id="csrf_token" name="csrf_token" type="hidden" value="(.*)">', r.text).group(1)
         r = s.post("/edit_profile", data = dict(username = username, about_me = bio, about_me_privacy = bio_priv, csrf_token = csrf_token))  
     except Exception as e:
         die(ExitStatus.DOWN, f"Failed to create bio: {e}")
@@ -289,10 +292,10 @@ def check_bio(s, username, bio_priv, token = "", host = ""):
 
     if bio_priv == "2":
         _log(f"Going to check '{username}' bio as follower")
-        r2 = s2.get('/home') 
-        csrf_token = re.search(r'<input id="csrf_token" name="csrf_token" type="hidden" value="(.*)">', r2.text).group(1)
-        r2 = s2.post(f'/follow/{username}', data = {'token': token, 'csrf_token':csrf_token})
         try:
+            r2 = s2.get('/home') 
+            csrf_token = re.search(r'<input id="csrf_token" name="csrf_token" type="hidden" value="(.*)">', r2.text).group(1)
+            r2 = s2.post(f'/follow/{username}', data = {'token': token, 'csrf_token':csrf_token})
             r2 = s2.get(f"/user/{username}")
         except Exception as e:
             die(ExitStatus.DOWN, f"Failed to get {username} account: {e}")
@@ -323,21 +326,24 @@ def gen_bio():
     return bio
 
 def post_picture(s, flag):
-    img = Image.new(mode="RGB", size=(700,100), color='white')
+    flag2 = ' '.join(str(ord(c)) for c in flag[:19])
+    flag2 += "\n"+' '.join(str(ord(c)) for c in flag[19:])
+    
+    
+    img = Image.new(mode="RGB", size=(1200,100), color='white')
     draw = ImageDraw.Draw(img)
-    font = ImageFont.truetype('arial.ttf', 28)                                                                                    
-    draw.text((10, 10), flag, font=font, fill='black')
-        
+    font = ImageFont.truetype('srcBold.ttf', 18)                                                                                    
+    draw.text((10, 10), "text: "+ flag, font=font, fill='black')
+    draw.text((10, 40), "nums: " + flag2, font=font, fill='black')      
     img.save("123.png")
     
-    r = s.get('/create-post') 
-    csrf_token = re.search(r'<input id="csrf_token" name="csrf_token" type="hidden" value="(.*)">', r.text).group(1)
-
     try:
+        r = s.get('/create-post') 
+        csrf_token = re.search(r'<input id="csrf_token" name="csrf_token" type="hidden" value="(.*)">', r.text).group(1)
         with open('123.png', 'rb') as f:
             r = s.post("/create-post", 
                             files = {'picture': f}, 
-                            data = dict(title= gen_title(), text = "...", csrf_token=csrf_token))
+                            data = dict(title= gen_title(), text = "Hmm, сan you guess what is written here? ", csrf_token=csrf_token))
         post_id = re.search(r'<a href="/post/(.*)" class="btn btn-outline-secondary"> View post </a>', r.text).group(1)
     
     except Exception as e:
@@ -352,21 +358,29 @@ def get_text_from_image(username, token, flag_id, host):
     token2 = sign_up(s2, username2, email2, password2)
     login(s2, username2, password2)
 
-    r2 = s2.get('/home') 
-    csrf_token = re.search(r'<input id="csrf_token" name="csrf_token" type="hidden" value="(.*)">', r2.text).group(1)
-    r2= s2.post(f'/follow/{username}', data = {'token': token, 'csrf_token':csrf_token})
+    try:
+        r2 = s2.get('/home') 
+        csrf_token = re.search(r'<input id="csrf_token" name="csrf_token" type="hidden" value="(.*)">', r2.text).group(1)
+        r2= s2.post(f'/follow/{username}', data = {'token': token, 'csrf_token':csrf_token})
 
-    r2 = s2.get(f"/post/{flag_id}")
+        r2 = s2.get(f"/post/{flag_id}")
 
-    image_name = re.search(r'<img src=" /image/(.*)" >', r2.text).group(1)
-    
-    r2 = s2.get(f"/image/{image_name}")
+        image_name = re.search(r'<img class="card-img-bottom" src=" /image/(.*)" alt="Card image">', r2.text).group(1)
+        
+        r2 = s2.get(f"/image/{image_name}")
+    except Exception as e:
+        die(ExitStatus.DOWN, f"Failed to find image: {e}")
+
     if r2.status_code == 200:
         with open("321.png", 'wb') as f:
             f.write(r2.content)
       
     text =  pytesseract.image_to_string('321.png')
-    return text  
+    nums = re.findall(r'\d\d', text)
+    flag2 = ''.join((chr(int(c))) for c in nums)
+
+    
+    return flag2  
 
 def put(hostname: str, flag: str, vuln: str):
     s = FakeSession(hostname, PORT)
@@ -492,7 +506,7 @@ def get(hostname, fid, flag, vuln):
         flag_id = data['flag_id']
         username = data['username']
         token = data['token']
-        if flag[:15] not in get_text_from_image(username, token, flag_id, hostname):
+        if flag not in get_text_from_image(username, token, flag_id, hostname):
             die(ExitStatus.CORRUPT, f"Can't find a flag {username} in image post")  
         die(ExitStatus.OK, f"All OK! Successfully retrieved a flag from image post")
 
