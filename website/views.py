@@ -4,7 +4,7 @@ from .models import Post, User
 from . import db
 from .forms import LoginForm, RegistrationForm, EditProfileForm, EmptyForm, PostForm,TokenForm
 from werkzeug.datastructures import FileStorage
-from sqlalchemy import text
+from sqlalchemy import text,desc
 import os 
 import io
 from base64 import encode
@@ -12,11 +12,12 @@ from PIL import Image
 import requests
 from urllib.parse import urlparse
 from werkzeug.utils import secure_filename
-
+import json
+import traceback
 views = Blueprint("views", __name__)
 
 IMAGE_LOAD_URL="http://127.0.0.1:8080"
-
+ALLOWED_EXTENSIONS= ['jpg', 'png']
 
 @views.route("/image/<filename>")
 @login_required
@@ -52,6 +53,10 @@ def post(id):
     
     return render_template("view_post.html",post=post,author=user.username)
 
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 @views.route("/create-post", methods=['GET', 'POST'])
 @login_required
 def create_post():
@@ -59,22 +64,34 @@ def create_post():
     if form.validate_on_submit():
         text=form.text.data
         title=form.title.data
+        
         if form.picture.data:
             try:
+                
                 filename=secure_filename(form.picture.data.filename)
-                image_url = IMAGE_LOAD_URL+'/upload'
-                post_response = requests.post(image_url,
-                                    files={'file': (filename, form.picture.data.stream, form.picture.data.mimetype)})
-                if post_response.status_code != 200:
-                    raise Exception
+                if allowed_file(filename):
+                    last_post=Post.query.order_by(Post.id.desc()).first()
+                    id=last_post.id+1
+                    name,ext = os.path.splitext(filename)
+                    image_fn = str(id) + ext
+
+                    image_url = IMAGE_LOAD_URL+'/upload'
+                
+                    post_response = requests.post(image_url,
+                                    files={'file': (image_fn, form.picture.data.stream, form.picture.data.mimetype)})
+                    if post_response.status_code != 200:
+                        raise Exception
+                    else:
+                        picture_file = post_response.json().get('image_name')
+                        post = Post(title=title,text=text,image_name=picture_file, author=current_user.id)
+                        db.session.add(post)
+                        db.session.commit()
+                        flash('Post created!', category='success')
+                        return redirect(url_for('views.home'))
                 else:
-                    picture_file = post_response.json().get('image_name')
-                    post = Post(title=title,text=text,image_name=picture_file, author=current_user.id)
-                    db.session.add(post)
-                    db.session.commit()
-                    flash('Post created!', category='success')
-                    return redirect(url_for('views.home'))
+                    raise Exception
             except Exception:
+                print(traceback.format_exc())
                 flash('Try again!', category='error') 
         elif form.url.data:
             try:
@@ -82,18 +99,26 @@ def create_post():
                 filename=os.path.basename(urlparse(form.url.data).path)
                 filename=secure_filename(filename)
                 content_type = response.headers.get("content-type")
-                image_url = IMAGE_LOAD_URL+'/upload'
-                post_response = requests.post(image_url,
+
+                if allowed_file(filename):
+                    last_post=Post.query.order_by(Post.id.desc()).first()
+                    id=last_post.id+1
+                    name,ext = os.path.splitext(filename)
+                    image_fn = str(id) + ext
+                    image_url = IMAGE_LOAD_URL+'/upload'
+                    post_response = requests.post(image_url,
                                     files={'file': (filename, io.BytesIO(response.content),content_type)})
-                if post_response.status_code != 200:
-                    raise Exception
+                    if post_response.status_code != 200:
+                        raise Exception
+                    else:
+                        picture_file = post_response.json().get('image_name')
+                        post = Post(title=title,text=text,image_name=picture_file, author=current_user.id)
+                        db.session.add(post)
+                        db.session.commit()
+                        flash('Post created!', category='success')
+                        return redirect(url_for('views.home'))
                 else:
-                    picture_file = post_response.json().get('image_name')
-                    post = Post(title=title,text=text,image_name=picture_file, author=current_user.id)
-                    db.session.add(post)
-                    db.session.commit()
-                    flash('Post created!', category='success')
-                    return redirect(url_for('views.home'))
+                    raise Exception
             except Exception:
                 flash('Try again!', category='error') 
         else:

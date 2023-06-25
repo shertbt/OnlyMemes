@@ -7,6 +7,7 @@ from hashlib import md5
 import io
 from base64 import b64encode
 from PIL import Image
+import traceback
 
 MAX_CONTENT_LENGTH = 16 * 1024 * 1024
 ALLOWED_EXTENSIONS= ['jpg', 'png']
@@ -20,14 +21,11 @@ def allowed_file(filename):
 
 def save_image(image):
     image_name=image.filename
-    random_hex = md5(time.strftime("%Y%m%d-%H%M%S").encode()).hexdigest()
-    name,ext = os.path.splitext(image_name)
-    image_fn = random_hex + ext
-    path = os.path.join(app.root_path, 'static\\uploads', image_fn)
+    path = os.path.join(app.root_path, 'static\\uploads', image_name)
 
     image.save(path)
 
-    return image_fn
+    return image_name
 
 
 
@@ -35,8 +33,8 @@ def save_image(image):
 def upload():
     
     try:
-        image = request.files['file']
         
+        image = request.files['file']
         if image and allowed_file(image.filename):
             name=save_image(image)
             response = {'image_name': name, 'status': 'OK'}
@@ -45,10 +43,12 @@ def upload():
         else:
             raise TypeError
     except TypeError:
+        print(traceback.format_exc())
         response = {'status': 'Error'}
         response['message'] = 'Unsupported file type'
         return make_response(jsonify(response), 415)
     except Exception as e:
+        print(traceback.format_exc())
         response = {'status': 'Error'}
         response['message'] = 'Failed to upload image'
         return make_response(jsonify(response), 500)
