@@ -98,23 +98,26 @@ def create_post():
 
                 if allowed_file(filename):
                     response = requests.get(form.url.data)
-                    content_type = response.headers.get("content-type")
-                    last_post=Post.query.order_by(Post.id.desc()).first()
-                    id=last_post.id+1
-                    name,ext = os.path.splitext(filename)
-                    image_fn = str(id) + ext
-                    image_url = IMAGE_LOAD_URL+'/upload'
-                    post_response = requests.post(image_url,
-                                    files={'file': (filename, io.BytesIO(response.content),content_type)})
-                    if post_response.status_code != 200:
+                    if response.status_code != 200:
                         raise Exception
                     else:
-                        picture_file = post_response.json().get('image_name')
-                        post = Post(title=title,text=text,image_name=picture_file, author=current_user.id)
-                        db.session.add(post)
-                        db.session.commit()
-                        flash('Post created!', category='success')
-                        return redirect(url_for('views.home'))
+                        content_type = response.headers.get("content-type")
+                        last_post=Post.query.order_by(Post.id.desc()).first()
+                        id=last_post.id+1
+                        name,ext = os.path.splitext(filename)
+                        image_fn = str(id) + ext
+                        image_url = IMAGE_LOAD_URL+'/upload'
+                        post_response = requests.post(image_url,
+                                    files={'file': (filename, io.BytesIO(response.content),content_type)})
+                        if post_response.status_code != 200:
+                            raise Exception
+                        else:
+                            picture_file = post_response.json().get('image_name')
+                            post = Post(title=title,text=text,image_name=picture_file, author=current_user.id)
+                            db.session.add(post)
+                            db.session.commit()
+                            flash('Post created!', category='success')
+                            return redirect(url_for('views.home'))
                 else:
                     raise Exception
             except Exception:
