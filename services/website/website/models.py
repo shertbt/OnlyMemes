@@ -64,7 +64,7 @@ class User(db.Model, UserMixin):
             followers, (followers.c.followed_id == Post.author)).filter(
                 followers.c.follower_id == self.id)
         own = Post.query.filter_by(author=self.id)
-        return followed.union(own).order_by(Post.date_created.desc())
+        return followed.union(own).order_by(Post.date_created.desc()).limit(30)
     
     def following_users(self):
         following_user=self.followed

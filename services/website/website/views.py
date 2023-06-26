@@ -160,7 +160,7 @@ def delete_post(id):
 @login_required
 def user(username):
     user = User.query.filter_by(username=username).first_or_404()
-    posts=Post.query.filter_by(author=user.id).all()
+    posts=Post.query.filter_by(author=user.id).order_by(Post.date_created.desc()).limit(30)
     form = EmptyForm()
     return render_template('account.html', user=user, posts=posts,form=form)
 
