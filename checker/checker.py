@@ -17,7 +17,6 @@ from bs4 import BeautifulSoup
 from generator import string_to_bf
 import pytesseract                                                                                                  
 from PIL import Image, ImageDraw, ImageFont 
-import shutil
 
 
 random = random.SystemRandom()
@@ -60,7 +59,7 @@ def check(host: str):
         die(ExitStatus.CORRUPT, "Incorrect flag")
 
     _log(f"Going to create post with image '{username}' ")
-    text = gen_title()
+    text = gen_text()
     post_id = post_picture(s, text) 
     
     _log("Check users in searchList")
@@ -325,7 +324,7 @@ def gen_bio():
         bio += r.get_random_word() + " "
     return bio
 
-def post_picture(s, flag):
+def post_flag(s, flag):
     flag2 = ' '.join(str(ord(c)) for c in flag[:19])
     flag2 += "\n"+' '.join(str(ord(c)) for c in flag[19:])
     
@@ -351,6 +350,54 @@ def post_picture(s, flag):
     if r.status_code != 200:
         die(ExitStatus.CORRUPT, f"Unexpected  /create-post code {r.status_code}")
     return post_id
+
+def get_image_url():
+    urls = ["https://zlonov.ru/assets/images/demotivators/@zlonov%20%D0%B4%D0%B5%D0%BC%D0%BE%D1%82%D0%B8%D0%B2%D0%B0%D1%82%D0%BE%D1%80%20-%20Big%20data%20analysis.png",
+            "https://demotions.ru/uploads/posts/2022-08/1661752963_Po-kakomu-vedru-stuc_demotions.ru.jpg",
+            "https://cs12.pikabu.ru/post_img/big/2022/12/09/7/1670580320124901.jpg",
+            "https://picmedia.ru/upload/000/u1/3/9/smeshnye-demotivatory-30-foto-photo-big.jpg",
+            "https://cm.author.today/content/2023/04/14/dadd7c7f18f14e9894c4b33088390032.jpg",
+            "https://jokesland.net.ru/dem2/demotivatory_468/22.jpg",
+            "https://demotions.ru/uploads/posts/2023-06/1687442329_Voda-eto-zhizn_demotions.ru.jpg"
+    ]
+    return f"{random.choice(urls)}"
+
+def post_picture(s, text):
+    text2 = [text[i:i+107] for i in range(0, len(text), 107)]
+    text2 = "\n".join(text2)
+    img = Image.new(mode="RGB", size=(1200,100), color='white')
+    draw = ImageDraw.Draw(img)
+    font = ImageFont.truetype('srcBold.ttf', 18)                                                                                    
+    draw.text((10, 10), text2, font=font, fill='black')     
+    img.save("123.png")
+    try:
+        r = s.get('/create-post') 
+        csrf_token = re.search(r'<input id="csrf_token" name="csrf_token" type="hidden" value="(.*)">', r.text).group(1)
+        with open('123.png', 'rb') as f:
+            r = s.post("/create-post", 
+                            files = {'picture': f}, 
+                            data = dict(title= gen_title(), text = "...", csrf_token=csrf_token))
+        post_id1 = re.search(r'<a href="/post/(.*)" class="btn btn-outline-secondary"> View post </a>', r.text).group(1)
+    
+    except Exception as e:
+        die(ExitStatus.DOWN, f"Failed to upload image: {e}")
+    if r.status_code != 200:
+        die(ExitStatus.CORRUPT, f"Unexpected  /create-post code {r.status_code}")   
+
+    try:
+        r = s.get('/create-post') 
+        csrf_token = re.search(r'<input id="csrf_token" name="csrf_token" type="hidden" value="(.*)">', r.text).group(1)
+        url = get_image_url()
+        r = s.post("/create-post",  
+                            data = dict(title= gen_title(), text = "... ", url =url ,csrf_token=csrf_token))
+        post_id2 = re.search(r'<a href="/post/(.*)" class="btn btn-outline-secondary"> View post </a>', r.text).group(1)
+    
+    except Exception as e:
+        die(ExitStatus.DOWN, f"Failed to upload url image: {e}")
+    if r.status_code != 200:
+        die(ExitStatus.CORRUPT, f"Unexpected  /create-post code {r.status_code}")  
+
+    return post_id2
 
 def get_text_from_image(username, token, flag_id, host):
     s2 = FakeSession(host, PORT)
@@ -441,7 +488,7 @@ def put(hostname: str, flag: str, vuln: str):
     #5. flag in post as image
     if vuln == "5":
         
-        flag_post_id = post_picture(s, flag)
+        flag_post_id = post_flag(s, flag)
         data = json.dumps({
         "flag_id": flag_post_id,
         "username": username,
