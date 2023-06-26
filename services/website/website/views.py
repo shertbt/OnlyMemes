@@ -108,7 +108,7 @@ def create_post():
                         image_fn = str(id) + ext
                         image_url = IMAGE_LOAD_URL+'/upload'
                         post_response = requests.post(image_url,
-                                    files={'file': (filename, io.BytesIO(response.content),content_type)})
+                                    files={'file': (image_fn, io.BytesIO(response.content),content_type)})
                         if post_response.status_code != 200:
                             raise Exception
                         else:
