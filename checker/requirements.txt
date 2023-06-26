@@ -1,0 +1,6 @@
+requests
+names
+Random-Word
+beautifulsoup4
+pytesseract
+Pillow
