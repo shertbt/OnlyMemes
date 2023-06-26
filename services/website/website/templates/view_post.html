@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content%}
+<style>
+  .btn-primary{
+    background: linear-gradient(-135deg,  #2826b3, #c3aae0);
+    border-color: #4158d0;
+  }
+</style>
+
+<h1 align="center">{% block header %}Post{% endblock %}</h1>
+
+<div class="card border-dark">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    {% if current_user.id == post.author %}
+    <div class="btn-group">
+      <button
+        type="button"
+        class="btn btn-sm btn-primary dropdown-toggle"
+        data-bs-toggle="dropdown"
+      ></button>
+      <ul class="dropdown-menu">
+        <li>
+          <a href="/delete-post/{{post.id}}" class="dropdown-item">Delete</a>
+        </li>
+      </ul>
+    </div>
+    {% endif %}
+  </div>
+  <div class="card">
+    <div class="card-body">
+      <h5 class="card-title">{{post.title}}</h5>
+      <h6 class="card-text">{{post.text}}</h6>
+      {% if post.image_name %} 
+      <img class="card-img-bottom" src=" {{ url_for('views.get_image', filename=post.image_name) }}" alt="Card image"> 
+      {% endif %}
+    </div>
+    <div class="card-footer text-muted">{{post.date_created}}</div>
+  </div>
+</div>
+<br> 
+  <form>
+  <input type="button" value="Back" class="btn btn-outline-secondary btn-lg" onclick="history.back()">
+ </form>
+
+{% endblock %}
