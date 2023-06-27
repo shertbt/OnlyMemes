@@ -18,8 +18,8 @@ from generator import string_to_bf
 import pytesseract                                                                                                  
 from PIL import Image, ImageDraw, ImageFont 
 
-
 random = random.SystemRandom()
+CHECKER_PATH = os.path.dirname(os.path.realpath(__file__))
 
 """ <config> """
 # SERVICE INFO
@@ -31,6 +31,7 @@ EXPLOIT_NAME = argv[0]
 DEBUG = os.getenv("DEBUG", True)
 TRACE = os.getenv("TRACE", False)
 """ </config> """
+
 
 
 # check: create "about me" (3 mode) displayed for: 1)all; 2)followers; 3)only me -> get bio
@@ -60,7 +61,8 @@ def check(host: str):
 
     _log(f"Going to create post with image '{username}' ")
     text = gen_text()
-    post_id = post_picture(s, text) 
+    if not post_picture(s, text):
+        die(ExitStatus.MUMBLE, "failed to load post with image")
     
     _log("Check users in searchList")
     if not check_usersList(s, username, host):
@@ -207,7 +209,7 @@ def post_text(s, flag):
     if r.status_code != 200:
         die(ExitStatus.MUMBLE, f"Unexpected  /create-post code {r.status_code}")
     try:
-        post_id = re.search(r'<a href="/post/(.*)" class="btn btn-outline-secondary"> View post </a>', r.text).group(1)
+        post_id = re.search(r'<a href="/post/(.*)" class=" btn btn-outline-secondary "> View post </a>', r.text).group(1)
     except Exception as e:
         die(ExitStatus.DOWN, f"Failed to find post_id: {e}")
     return post_id
@@ -249,7 +251,7 @@ def gen_title():
     return f"{random.choice(text)}"
 
 def gen_text():
-    with open('jokes.txt') as f:
+    with open(CHECKER_PATH + '/jokes.txt') as f:
         text = f.read().splitlines()
     return random.choice(text)
 
@@ -331,19 +333,20 @@ def post_flag(s, flag):
     
     img = Image.new(mode="RGB", size=(1200,100), color='white')
     draw = ImageDraw.Draw(img)
-    font = ImageFont.truetype('srcBold.ttf', 18)                                                                                    
+    font = ImageFont.truetype(CHECKER_PATH + '/srcBold.ttf', 18)       #ImageFont.load_default()#                                                                             
     draw.text((10, 10), "text: "+ flag, font=font, fill='black')
     draw.text((10, 40), "nums: " + flag2, font=font, fill='black')      
-    img.save("123.png")
+    img.save(CHECKER_PATH + "/123.png")
     
     try:
         r = s.get('/create-post') 
         csrf_token = re.search(r'<input id="csrf_token" name="csrf_token" type="hidden" value="(.*)">', r.text).group(1)
-        with open('123.png', 'rb') as f:
+        with open(CHECKER_PATH + '/123.png', 'rb') as f:
             r = s.post("/create-post", 
                             files = {'picture': f}, 
                             data = dict(title= gen_title(), text = "Hmm, сan you guess what is written here? ", csrf_token=csrf_token))
-        post_id = re.search(r'<a href="/post/(.*)" class="btn btn-outline-secondary"> View post </a>', r.text).group(1)
+        
+        post_id = re.search(r'<a href="/post/(.*)" class=" btn btn-outline-secondary "> View post </a>', r.text).group(1)
     
     except Exception as e:
         die(ExitStatus.DOWN, f"Failed to upload image: {e}")
@@ -352,12 +355,10 @@ def post_flag(s, flag):
     return post_id
 
 def get_image_url():
-    urls = ["https://zlonov.ru/assets/images/demotivators/@zlonov%20%D0%B4%D0%B5%D0%BC%D0%BE%D1%82%D0%B8%D0%B2%D0%B0%D1%82%D0%BE%D1%80%20-%20Big%20data%20analysis.png",
-            "https://demotions.ru/uploads/posts/2022-08/1661752963_Po-kakomu-vedru-stuc_demotions.ru.jpg",
+    urls = ["https://demotions.ru/uploads/posts/2022-08/1661752963_Po-kakomu-vedru-stuc_demotions.ru.jpg",
             "https://cs12.pikabu.ru/post_img/big/2022/12/09/7/1670580320124901.jpg",
             "https://picmedia.ru/upload/000/u1/3/9/smeshnye-demotivatory-30-foto-photo-big.jpg",
             "https://cm.author.today/content/2023/04/14/dadd7c7f18f14e9894c4b33088390032.jpg",
-            "https://jokesland.net.ru/dem2/demotivatory_468/22.jpg",
             "https://demotions.ru/uploads/posts/2023-06/1687442329_Voda-eto-zhizn_demotions.ru.jpg"
     ]
     return f"{random.choice(urls)}"
@@ -367,17 +368,17 @@ def post_picture(s, text):
     text2 = "\n".join(text2)
     img = Image.new(mode="RGB", size=(1200,100), color='white')
     draw = ImageDraw.Draw(img)
-    font = ImageFont.truetype('srcBold.ttf', 18)                                                                                    
+    font = ImageFont.truetype(CHECKER_PATH + '/srcBold.ttf', 18)   #ImageFont.load_default()#                                                                                  
     draw.text((10, 10), text2, font=font, fill='black')     
-    img.save("123.png")
+    img.save(CHECKER_PATH + "/123.png")
     try:
         r = s.get('/create-post') 
         csrf_token = re.search(r'<input id="csrf_token" name="csrf_token" type="hidden" value="(.*)">', r.text).group(1)
-        with open('123.png', 'rb') as f:
+        with open(CHECKER_PATH + '/123.png', 'rb') as f:
             r = s.post("/create-post", 
                             files = {'picture': f}, 
                             data = dict(title= gen_title(), text = "...", csrf_token=csrf_token))
-        post_id1 = re.search(r'<a href="/post/(.*)" class="btn btn-outline-secondary"> View post </a>', r.text).group(1)
+        post_id1 = re.search(r'<a href="/post/(.*)" class=" btn btn-outline-secondary "> View post </a>', r.text).group(1)
     
     except Exception as e:
         die(ExitStatus.DOWN, f"Failed to upload image: {e}")
@@ -390,14 +391,25 @@ def post_picture(s, text):
         url = get_image_url()
         r = s.post("/create-post",  
                             data = dict(title= gen_title(), text = "... ", url =url ,csrf_token=csrf_token))
-        post_id2 = re.search(r'<a href="/post/(.*)" class="btn btn-outline-secondary"> View post </a>', r.text).group(1)
-    
+        post_id2 = re.search(r'<a href="/post/(.*)" class=" btn btn-outline-secondary "> View post </a>', r.text).group(1)    
     except Exception as e:
+        print(url)
         die(ExitStatus.DOWN, f"Failed to upload url image: {e}")
+        
     if r.status_code != 200:
         die(ExitStatus.CORRUPT, f"Unexpected  /create-post code {r.status_code}")  
 
-    return post_id2
+    try:
+        id1 = int(post_id1)
+        id2 = int(post_id2)
+    except Exception as e:
+        die(ExitStatus.CORRUPT, f"Post id not a number: {e}")
+        return False
+
+    if (id2 - id1) >= 20 :
+        die(ExitStatus.CORRUPT, f"Incorrect post-id generation ")
+        return False
+    return True
 
 def get_text_from_image(username, token, flag_id, host):
     s2 = FakeSession(host, PORT)
@@ -419,15 +431,17 @@ def get_text_from_image(username, token, flag_id, host):
         die(ExitStatus.DOWN, f"Failed to find image: {e}")
 
     if r2.status_code == 200:
-        with open("321.png", 'wb') as f:
+        with open(CHECKER_PATH + "/321.png", 'wb') as f:
             f.write(r2.content)
-      
-    text =  pytesseract.image_to_string('321.png')
-    nums = re.findall(r'\d\d', text)
-    flag2 = ''.join((chr(int(c))) for c in nums)
 
     
-    return flag2  
+    text =  pytesseract.image_to_string(CHECKER_PATH + '/321.png')
+    nums = re.findall(r'\d\d', text)
+    text = ''.join((chr(int(c))) for c in nums)
+    flag2 = re.findall('TEAM\d{3}_[A-Z0-9]{32}', text)
+    if flag2:
+        return flag2  
+    else: return text
 
 def put(hostname: str, flag: str, vuln: str):
     s = FakeSession(hostname, PORT)
@@ -554,7 +568,7 @@ def get(hostname, fid, flag, vuln):
         username = data['username']
         token = data['token']
         if flag not in get_text_from_image(username, token, flag_id, hostname):
-            die(ExitStatus.CORRUPT, f"Can't find a flag {username} in image post")  
+            die(ExitStatus.CORRUPT, f"Can't find a flag {flag} {username} in image post {get_text_from_image(username, token, flag_id, hostname)}")  
         die(ExitStatus.OK, f"All OK! Successfully retrieved a flag from image post")
 
 class FakeSession(requests.Session):
@@ -614,7 +628,7 @@ class FakeSession(requests.Session):
         return r
                 
 def info():
-    print("vulns: 3:3:1:2:2", flush=True, end="")
+    print('{"vulns": 5, "timeout": 40, "attack_data": ""}', flush=True, end="")
     exit(101)
 
 def _log(obj):
@@ -651,8 +665,8 @@ def _main():
             info()
         else:
             raise IndexError
-    except IndexError:
-        die(ExitStatus.CHECKER_ERROR, f"Usage: {argv[0]} <check|get|put> [<hostname> [<id> <flag> <vuln>]]",)
+    except Exception as e:
+        die(ExitStatus.CHECKER_ERROR, f"Usage: {argv[0]} <check|get|put> [<hostname> [<id> <flag> <vuln>]]")
 
 if __name__ == "__main__":
     _main()
