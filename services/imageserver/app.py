@@ -1,9 +1,7 @@
 import requests
-import json
 from flask import Flask, request, jsonify, make_response,send_file
 import os
-import io
-from PIL import Image
+
 
 MAX_CONTENT_LENGTH = 16 * 1024 * 1024
 ALLOWED_EXTENSIONS= ['jpg', 'png']

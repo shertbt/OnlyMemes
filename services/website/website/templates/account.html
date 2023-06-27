@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <table>
+    <table class="table table-hover">
         <tr valign="top">
-            <td><img src="{{ user.avatar(128) }}"></td>
+            <td width="180px"> <img src="{{ user.avatar(180) }}"></td>
             <td>
                 <h1>User: {{ user.username }}</h1>
                 <p>{{ user.email }}</p>
@@ -38,7 +38,18 @@
     <hr>
     {%if current_user.is_following(user.id) or user == current_user%}
         {% for post in posts %}
-            {% include '_post.html' %} <br> 
+            {% include 'post.html' %} <br> 
         {% endfor %}
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center">
+            <li class="page-item previous{% if not prev_url %} disabled{% endif %}">
+                <a class="page-link" href="{{ prev_url or '#' }}">Previous</a>
+            </li>
+              
+            <li class="page-item next{% if not next_url %} disabled{% endif %}">
+                <a class="page-link" href="{{ next_url or '#' }}">Next </a>
+            </li>
+            </ul>
+        </nav>
     {% endif %}
 {% endblock %}
