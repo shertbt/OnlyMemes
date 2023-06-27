@@ -209,7 +209,8 @@ def post_text(s, flag):
     if r.status_code != 200:
         die(ExitStatus.MUMBLE, f"Unexpected  /create-post code {r.status_code}")
     try:
-        post_id = re.search(r'<a href="/post/(.*)" class=" btn btn-outline-secondary "> View post </a>', r.text).group(1)
+        post_id = re.search(r'<a href="/post/(.*)" class="btn btn-outline-secondary"> View post </a>', r.text).group(1)
+        
     except Exception as e:
         die(ExitStatus.DOWN, f"Failed to find post_id: {e}")
     return post_id
@@ -335,18 +336,19 @@ def post_flag(s, flag):
     draw = ImageDraw.Draw(img)
     font = ImageFont.truetype(CHECKER_PATH + '/srcBold.ttf', 18)       #ImageFont.load_default()#                                                                             
     draw.text((10, 10), "text: "+ flag, font=font, fill='black')
-    draw.text((10, 40), "nums: " + flag2, font=font, fill='black')      
-    img.save(CHECKER_PATH + "/123.png")
+    draw.text((10, 40), "nums: " + flag2, font=font, fill='black')     
+    name = str(random.randint(1,50))+ ".png"
+    img.save(CHECKER_PATH + "/images/"+name)
     
     try:
         r = s.get('/create-post') 
         csrf_token = re.search(r'<input id="csrf_token" name="csrf_token" type="hidden" value="(.*)">', r.text).group(1)
-        with open(CHECKER_PATH + '/123.png', 'rb') as f:
+        with open(CHECKER_PATH + '/images/' + name, 'rb') as f:
             r = s.post("/create-post", 
                             files = {'picture': f}, 
                             data = dict(title= gen_title(), text = "Hmm, сan you guess what is written here? ", csrf_token=csrf_token))
         
-        post_id = re.search(r'<a href="/post/(.*)" class=" btn btn-outline-secondary "> View post </a>', r.text).group(1)
+        post_id = re.search(r'<a href="/post/(.*)" class="btn btn-outline-secondary"> View post </a>', r.text).group(1)
     
     except Exception as e:
         die(ExitStatus.DOWN, f"Failed to upload image: {e}")
@@ -370,15 +372,16 @@ def post_picture(s, text):
     draw = ImageDraw.Draw(img)
     font = ImageFont.truetype(CHECKER_PATH + '/srcBold.ttf', 18)   #ImageFont.load_default()#                                                                                  
     draw.text((10, 10), text2, font=font, fill='black')     
-    img.save(CHECKER_PATH + "/123.png")
+    name = str(random.randint(1,50)) +".png"
+    img.save(CHECKER_PATH + "/images/"+name)
     try:
         r = s.get('/create-post') 
         csrf_token = re.search(r'<input id="csrf_token" name="csrf_token" type="hidden" value="(.*)">', r.text).group(1)
-        with open(CHECKER_PATH + '/123.png', 'rb') as f:
+        with open(CHECKER_PATH + '/images/'+name, 'rb') as f:
             r = s.post("/create-post", 
                             files = {'picture': f}, 
                             data = dict(title= gen_title(), text = "...", csrf_token=csrf_token))
-        post_id1 = re.search(r'<a href="/post/(.*)" class=" btn btn-outline-secondary "> View post </a>', r.text).group(1)
+        post_id1 = re.search(r'<a href="/post/(.*)" class="btn btn-outline-secondary"> View post </a>', r.text).group(1)
     
     except Exception as e:
         die(ExitStatus.DOWN, f"Failed to upload image: {e}")
@@ -391,7 +394,7 @@ def post_picture(s, text):
         url = get_image_url()
         r = s.post("/create-post",  
                             data = dict(title= gen_title(), text = "... ", url =url ,csrf_token=csrf_token))
-        post_id2 = re.search(r'<a href="/post/(.*)" class=" btn btn-outline-secondary "> View post </a>', r.text).group(1)    
+        post_id2 = re.search(r'<a href="/post/(.*)" class="btn btn-outline-secondary"> View post </a>', r.text).group(1)    
     except Exception as e:
         print(url)
         die(ExitStatus.DOWN, f"Failed to upload url image: {e}")
@@ -431,17 +434,19 @@ def get_text_from_image(username, token, flag_id, host):
         die(ExitStatus.DOWN, f"Failed to find image: {e}")
 
     if r2.status_code == 200:
-        with open(CHECKER_PATH + "/321.png", 'wb') as f:
-            f.write(r2.content)
+        name = str(random.randint(1,50)) + ".png"
+        with open(CHECKER_PATH + "/images/"+name, 'wb') as f:
+            f.write(r2.content)   
+        text =  pytesseract.image_to_string(CHECKER_PATH + "/images/"+ name)
+        nums = re.findall(r'\d\d', text)
+        text = ''.join((chr(int(c))) for c in nums)
+        flag2 = re.findall('TEAM\d{3}_[A-Z0-9]{32}', text)
+        if len(flag2) != 0:
+            return flag2[0]  
+        return text
 
     
-    text =  pytesseract.image_to_string(CHECKER_PATH + '/321.png')
-    nums = re.findall(r'\d\d', text)
-    text = ''.join((chr(int(c))) for c in nums)
-    flag2 = re.findall('TEAM\d{3}_[A-Z0-9]{32}', text)
-    if flag2:
-        return flag2  
-    else: return text
+    
 
 def put(hostname: str, flag: str, vuln: str):
     s = FakeSession(hostname, PORT)
@@ -567,8 +572,9 @@ def get(hostname, fid, flag, vuln):
         flag_id = data['flag_id']
         username = data['username']
         token = data['token']
-        if flag not in get_text_from_image(username, token, flag_id, hostname):
-            die(ExitStatus.CORRUPT, f"Can't find a flag {flag} {username} in image post {get_text_from_image(username, token, flag_id, hostname)}")  
+        res = get_text_from_image(username, token, flag_id, hostname)
+        if flag not in res:
+            die(ExitStatus.CORRUPT, f"Can't find a flag {flag} {username} in image post {res}")  
         die(ExitStatus.OK, f"All OK! Successfully retrieved a flag from image post")
 
 class FakeSession(requests.Session):
@@ -666,7 +672,7 @@ def _main():
         else:
             raise IndexError
     except Exception as e:
-        die(ExitStatus.CHECKER_ERROR, f"Usage: {argv[0]} <check|get|put> [<hostname> [<id> <flag> <vuln>]]")
+        die(ExitStatus.CHECKER_ERROR, f"{e}\n Usage: {argv[0]} <check|get|put> [<hostname> [<id> <flag> <vuln>]]")
 
 if __name__ == "__main__":
     _main()
