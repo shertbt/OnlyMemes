@@ -3,15 +3,15 @@ from flask import Flask, request, jsonify, make_response,send_file
 import os
 
 
-MAX_CONTENT_LENGTH = 16 * 1024 * 1024
-ALLOWED_EXTENSIONS= ['jpg', 'png']
-
 app = Flask(__name__)
+app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024
+app.config["ALLOWED_EXTENSIONS"]= ['jpg', 'png']
+
 os.makedirs(os.path.join(app.root_path, 'static\\uploads'), exist_ok=True)
 
 def allowed_file(filename):
     return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+           filename.rsplit('.', 1)[1].lower() in app.config["ALLOWED_EXTENSIONS"]
 
 def save_image(image):
     image_name=image.filename
