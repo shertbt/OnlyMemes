@@ -1,16 +1,15 @@
-from flask import Blueprint, render_template, request, flash, redirect, url_for, send_file
+from flask import Blueprint, render_template, request, flash, redirect, url_for, send_file,abort
 from flask_login import login_required, current_user
 from .models import Post, User
 from . import db
 from .forms import LoginForm, RegistrationForm, EditProfileForm, EmptyForm, PostForm,TokenForm
 from sqlalchemy import text,desc
 import os 
-import io
+from io import BytesIO
 from PIL import Image
 import requests
 from urllib.parse import urlparse
 from werkzeug.utils import secure_filename
-import json
 
 views = Blueprint("views", __name__)
 
@@ -30,11 +29,10 @@ def get_image(filename):
         item_image_raw = requests.get(image_url)
         
         content_type = item_image_raw.headers.get("content-type")
-        item_image_raw = io.BytesIO(item_image_raw.content)
+        item_image_raw = BytesIO(item_image_raw.content)
         return send_file(item_image_raw, mimetype=content_type)
     else:
-        flash('You do not have permission to see this image.', category='error')
-        return redirect(url_for('views.home'))
+        abort(403)
           
 @views.route("/")
 @views.route("/home")
@@ -108,7 +106,7 @@ def create_post():
                         image_fn = str(id) + ext
                         image_url = IMAGE_LOAD_URL+'/upload'
                         post_response = requests.post(image_url,
-                                    files={'file': (image_fn, io.BytesIO(response.content),content_type)})
+                                    files={'file': (image_fn, BytesIO(response.content),content_type)})
                         if post_response.status_code != 200:
                             raise Exception
                         else:
@@ -135,11 +133,10 @@ def create_post():
 @login_required
 def delete_post(id):
     post = Post.query.filter_by(id=id).first()
-
     if not post:
-        flash("Post does not exist.", category='error')
+        abort(403)
     elif current_user.id != post.author:
-        flash('You do not have permission to delete this post.', category='error')
+        abort(403)
     else:
         if post.image_name:
             try:
@@ -147,22 +144,33 @@ def delete_post(id):
                 post_response = requests.get(image_url)
                 if post_response.status_code != 200:
                     raise Exception
+                else:
+                    db.session.delete(post)
+                    db.session.commit()
+                    flash('Post deleted.', category='success')
+                    return redirect(url_for('views.home'))
             except Exception:
-                flash('Try again!', category='error') 
-        db.session.delete(post)
-        db.session.commit()
-        flash('Post deleted.', category='success')
-
-    return redirect(url_for('views.home'))
-
+                flash('Try again!', category='error')
+                return redirect(url_for('views.home'))
+        else: 
+            db.session.delete(post)
+            db.session.commit()
+            flash('Post deleted.', category='success')
+            return redirect(url_for('views.home'))
 
 @views.route('/user/<username>')
 @login_required
 def user(username):
     user = User.query.filter_by(username=username).first_or_404()
-    posts=Post.query.filter_by(author=user.id).order_by(Post.date_created.desc()).limit(30)
+    page = request.args.get('page', 1, type=int)
+    posts=Post.query.filter_by(author=user.id).order_by(Post.date_created.desc()).paginate(
+        page=page, per_page=10, error_out=False)
+    next_url = url_for('views.user', username=user.username,
+                       page=posts.next_num) if posts.has_next else None
+    prev_url = url_for('views.user', username=user.username,
+                       page=posts.prev_num) if posts.has_prev else None
     form = EmptyForm()
-    return render_template('account.html', user=user, posts=posts,form=form)
+    return render_template('account.html', user=user, posts=posts.items,form=form,  next_url=next_url, prev_url=prev_url)
 
 @views.route('/edit_profile', methods=['GET', 'POST'])
 @login_required
