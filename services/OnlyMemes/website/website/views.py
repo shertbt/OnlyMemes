@@ -13,7 +13,7 @@ from werkzeug.utils import secure_filename
 from datetime import datetime
 views = Blueprint("views", __name__)
 
-IMAGE_LOAD_URL="http://127.0.0.1:8080"
+IMAGE_LOAD_URL="http://10.0.0.3:8081"
 ALLOWED_EXTENSIONS= ['jpg', 'png']
 
 @views.route("/image/<filename>")

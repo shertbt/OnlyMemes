@@ -1,10 +1,35 @@
 version: "3.8"
 
 services:
-  onlymemes:
+  imageserver:
     build:
       context: .
-      dockerfile: ./Dockerfile
+      dockerfile: ./imageserver/Dockerfile
+    restart: always
+    ports:
+      - "8081:8081"
+    networks:
+      back-tier:
+        ipv4_address: 10.0.0.3
+  onlymemes:
+    depends_on:
+      - imageserver
+    build:
+      context: .
+      dockerfile: ./website/Dockerfile
     restart: always
     ports:
       - "5000:5000"
+    networks:
+      back-tier:
+          ipv4_address: 10.0.0.2
+      front-tier:
+
+networks:
+  front-tier:
+    driver: bridge
+  back-tier:
+    internal: true
+    ipam:
+      config:
+        - subnet: 10.0.0.0/24
