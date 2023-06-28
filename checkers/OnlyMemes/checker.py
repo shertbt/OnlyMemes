@@ -107,7 +107,7 @@ def sign_up(s, username, email, password):
     try:
         token = re.search(r'Congratulations, you are now a registered user! Here is your token: (.*)', r.text).group(1)
     except Exception as e:
-        die(ExitStatus.DOWN, f"Failed to get token after register in service: {e}")
+        die(ExitStatus.MUMBLE, f"Failed to get token after register in service: {e}")
     return token
 
 def login(s, username, password):
@@ -127,7 +127,7 @@ def login(s, username, password):
     try:
         token = re.search(r'here is your token: (.*)', r.text).group(1)
     except Exception as e:
-        die(ExitStatus.DOWN, f"Failed to get token after login in service: {e}")
+        die(ExitStatus.MUMBLE, f"Failed to get token after login in service: {e}")
 
 def check_usersList(s, username, host):
     s2 = FakeSession(host, PORT)
@@ -214,7 +214,7 @@ def post_text(s, flag):
         post_id = re.search(r'<a href="/post/(.*)" class="btn btn-outline-secondary"> View post </a>', r.text).group(1)
         
     except Exception as e:
-        die(ExitStatus.DOWN, f"Failed to find post_id: {e}")
+        die(ExitStatus.MUMBLE, f"Failed to find post_id: {e}")
     return post_id
 
 def get_post(username, token, post_id, host):
@@ -336,7 +336,7 @@ def post_flag(s, flag):
     
     img = Image.new(mode="RGB", size=(1200,100), color='white')
     draw = ImageDraw.Draw(img)
-    font = ImageFont.truetype(CHECKER_PATH + '/srcBold.ttf', 20)       #ImageFont.load_default()#                                                                             
+    font = ImageFont.truetype(CHECKER_PATH + '/srcBold.ttf', 20)                                                                                   
     draw.text((10, 10), "text: "+ flag, font=font, fill='black')
     draw.text((10, 40), "nums: " + flag2, font=font, fill='black')     
     name = flag[10:20]+ ".png"
@@ -355,7 +355,7 @@ def post_flag(s, flag):
     except Exception as e:
         die(ExitStatus.DOWN, f"Failed to upload image: {e}")
     if r.status_code != 200:
-        die(ExitStatus.CORRUPT, f"Unexpected  /create-post code {r.status_code}")
+        die(ExitStatus.MUMBLE, f"Unexpected  /create-post code {r.status_code}")
     return post_id
 
 def get_image_url():
@@ -363,7 +363,10 @@ def get_image_url():
             "https://cs12.pikabu.ru/post_img/big/2022/12/09/7/1670580320124901.jpg",
             "https://picmedia.ru/upload/000/u1/3/9/smeshnye-demotivatory-30-foto-photo-big.jpg",
             "https://cm.author.today/content/2023/04/14/dadd7c7f18f14e9894c4b33088390032.jpg",
-            "https://demotions.ru/uploads/posts/2023-06/1687442329_Voda-eto-zhizn_demotions.ru.jpg"
+            "https://demotions.ru/uploads/posts/2023-06/1687442329_Voda-eto-zhizn_demotions.ru.jpg",
+            "https://i.pinimg.com/736x/49/44/b1/4944b1d79a70ea06b15eb0bfcede1ddb.jpg",
+            "https://cdn.trinixy.ru/pics6/20210204/207703_1_trinixy_ru.jpg",
+            "https://klike.net/uploads/posts/2021-01/1610434110_1.jpg"
     ]
     return f"{random.choice(urls)}"
 
@@ -372,9 +375,9 @@ def post_picture(s, text):
     text2 = "\n".join(text2)
     img = Image.new(mode="RGB", size=(1200,100), color='white')
     draw = ImageDraw.Draw(img)
-    font = ImageFont.truetype(CHECKER_PATH + '/srcBold.ttf', 18)   #ImageFont.load_default()#                                                                                  
+    font = ImageFont.truetype(CHECKER_PATH + '/srcBold.ttf', 18)                                                                                  
     draw.text((10, 10), text2, font=font, fill='black')     
-    name = str(random.randint(110,150)) +".png"
+    name = str(random.randint(1,50)) +".png"
     img.save(CHECKER_PATH + "/images/"+name)
     try:
         r = s.get('/create-post') 
@@ -388,7 +391,7 @@ def post_picture(s, text):
     except Exception as e:
         die(ExitStatus.DOWN, f"Failed to upload image: {e}")
     if r.status_code != 200:
-        die(ExitStatus.CORRUPT, f"Unexpected  /create-post code {r.status_code}")   
+        die(ExitStatus.MUMBLE, f"Unexpected  /create-post code {r.status_code}")   
 
     try:
         r = s.get('/create-post') 
@@ -398,11 +401,10 @@ def post_picture(s, text):
                             data = dict(title= gen_title(), text = "... ", url =url ,csrf_token=csrf_token))
         post_id2 = re.search(r'<a href="/post/(.*)" class="btn btn-outline-secondary"> View post </a>', r.text).group(1)    
     except Exception as e:
-        print(url)
         die(ExitStatus.DOWN, f"Failed to upload url image: {e}")
         
     if r.status_code != 200:
-        die(ExitStatus.CORRUPT, f"Unexpected  /create-post code {r.status_code}")  
+        die(ExitStatus.MUMBLE, f"Unexpected  /create-post code {r.status_code}")  
 
     try:
         id1 = int(post_id1)
@@ -440,9 +442,8 @@ def get_text_from_image(username, token, flag_id, host):
         if r2.status_code == 200:
             with open(CHECKER_PATH + "/images/"+name, 'wb') as f:
                 f.write(r2.content)
-        else: raise FileNotFoundError
     except Exception as e:
-        die(ExitStatus.CHECKER_ERROR, f"image.....{e}")
+        die(ExitStatus.CHECKER_ERROR, f"Failed to open image: {e}")
     text = None
     try:   
         try:
@@ -450,14 +451,11 @@ def get_text_from_image(username, token, flag_id, host):
         except:
             text = pytesseract.image_to_string(CHECKER_PATH + "/images/"+ name)
         flag1 = re.findall('TEAM\d{3}_[A-Z0-9]{32}', text) 
-        print("text: ", text)
         nums = re.findall(r'\d\d', text)
-        print("nums:", nums)
         text = ''.join((chr(int(c))) for c in nums)
-        print("text:", text , "filename" , name)
         flag2 = re.findall('TEAM\d{3}_[A-Z0-9]{32}', text)         
     except Exception as e:
-        die(ExitStatus.DOWN, f"Failed to find text in image --{text}: {e}")
+        die(ExitStatus.DOWN, f"Failed to find text in image: {e}")
 
     return flag1, text
     
