@@ -17,6 +17,8 @@ from bs4 import BeautifulSoup
 from generator import string_to_bf
 import pytesseract                                                                                                  
 from PIL import Image, ImageDraw, ImageFont 
+import io
+
 
 random = random.SystemRandom()
 CHECKER_PATH = os.path.dirname(os.path.realpath(__file__))
@@ -334,10 +336,10 @@ def post_flag(s, flag):
     
     img = Image.new(mode="RGB", size=(1200,100), color='white')
     draw = ImageDraw.Draw(img)
-    font = ImageFont.truetype(CHECKER_PATH + '/srcBold.ttf', 18)       #ImageFont.load_default()#                                                                             
+    font = ImageFont.truetype(CHECKER_PATH + '/srcBold.ttf', 20)       #ImageFont.load_default()#                                                                             
     draw.text((10, 10), "text: "+ flag, font=font, fill='black')
     draw.text((10, 40), "nums: " + flag2, font=font, fill='black')     
-    name = str(random.randint(1,50))+ ".png"
+    name = flag[10:20]+ ".png"
     img.save(CHECKER_PATH + "/images/"+name)
     
     try:
@@ -372,7 +374,7 @@ def post_picture(s, text):
     draw = ImageDraw.Draw(img)
     font = ImageFont.truetype(CHECKER_PATH + '/srcBold.ttf', 18)   #ImageFont.load_default()#                                                                                  
     draw.text((10, 10), text2, font=font, fill='black')     
-    name = str(random.randint(1,50)) +".png"
+    name = str(random.randint(110,150)) +".png"
     img.save(CHECKER_PATH + "/images/"+name)
     try:
         r = s.get('/create-post') 
@@ -410,7 +412,7 @@ def post_picture(s, text):
         return False
 
     if (id2 - id1) >= 20 :
-        die(ExitStatus.CORRUPT, f"Incorrect post-id generation ")
+        die(ExitStatus.CORRUPT, f"Incorrect post-id generation different{id2 - id1}")
         return False
     return True
 
@@ -433,18 +435,31 @@ def get_text_from_image(username, token, flag_id, host):
     except Exception as e:
         die(ExitStatus.DOWN, f"Failed to find image: {e}")
 
-    if r2.status_code == 200:
-        name = str(random.randint(1,50)) + ".png"
-        with open(CHECKER_PATH + "/images/"+name, 'wb') as f:
-            f.write(r2.content)   
-        text =  pytesseract.image_to_string(CHECKER_PATH + "/images/"+ name)
+    name = flag_id + ".png"
+    try:
+        if r2.status_code == 200:
+            with open(CHECKER_PATH + "/images/"+name, 'wb') as f:
+                f.write(r2.content)
+        else: raise FileNotFoundError
+    except Exception as e:
+        die(ExitStatus.CHECKER_ERROR, f"image.....{e}")
+    text = None
+    try:   
+        try:
+            text = pytesseract.image_to_string(Image.open(io.BytesIO(r2.content)))
+        except:
+            text = pytesseract.image_to_string(CHECKER_PATH + "/images/"+ name)
+        flag1 = re.findall('TEAM\d{3}_[A-Z0-9]{32}', text) 
+        print("text: ", text)
         nums = re.findall(r'\d\d', text)
+        print("nums:", nums)
         text = ''.join((chr(int(c))) for c in nums)
-        flag2 = re.findall('TEAM\d{3}_[A-Z0-9]{32}', text)
-        if len(flag2) != 0:
-            return flag2[0]  
-        return text
+        print("text:", text , "filename" , name)
+        flag2 = re.findall('TEAM\d{3}_[A-Z0-9]{32}', text)         
+    except Exception as e:
+        die(ExitStatus.DOWN, f"Failed to find text in image --{text}: {e}")
 
+    return flag1, text
     
     
 
@@ -572,9 +587,10 @@ def get(hostname, fid, flag, vuln):
         flag_id = data['flag_id']
         username = data['username']
         token = data['token']
-        res = get_text_from_image(username, token, flag_id, hostname)
-        if flag not in res:
-            die(ExitStatus.CORRUPT, f"Can't find a flag {flag} {username} in image post {res}")  
+        res1, res2 = get_text_from_image(username, token, flag_id, hostname)
+        if (flag not in res1):
+            if (flag not in res2):
+                die(ExitStatus.CORRUPT, f"Can't find a flag {flag} {username} in image post {res1} {res2}\n") 
         die(ExitStatus.OK, f"All OK! Successfully retrieved a flag from image post")
 
 class FakeSession(requests.Session):
