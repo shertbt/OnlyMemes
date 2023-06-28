@@ -10,9 +10,11 @@
                 {% if user.about_me and ((user.about_me_privacy == "1")  or (current_user.is_following(user.id) and user.about_me_privacy == "2") or (user == current_user))%}
                 <p>{{ user.about_me }}</p>
                 {% endif %}
-                <a href="{{url_for('views.showFollowers', username = user.username)}}" class="btn btn-outline-primary btn-sm">
+                <a href="{{url_for('views.showFollowers', username = user.username)}}" class="btn btn-outline-primary btn-sm 
+                {% if not (user == current_user or current_user.is_following(user.id)) %} disabled{% endif %}">
                 {{ user.followers.count() }} followers</a> 
-                <a href="{{url_for('views.showFollowing', username = user.username)}}" class="btn btn-outline-primary btn-sm">
+                <a href="{{url_for('views.showFollowing', username = user.username)}}" class="btn btn-outline-primary btn-sm 
+                {% if not (user == current_user or current_user.is_following(user.id)) %} disabled{% endif %}">
                 {{ user.followed.count() }} following</a>
                 {% if user == current_user %}
                 <p><a href="{{ url_for('views.edit_profile') }}">Edit your profile</a></p>

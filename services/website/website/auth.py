@@ -6,6 +6,9 @@ from werkzeug.urls import url_parse
 from .forms import LoginForm, RegistrationForm
 auth = Blueprint("auth", __name__)
 
+def ordinaltg(n):
+    return str(n) + {1: 'st', 2: 'nd', 3: 'rd'}.get(4 if 10 <= n % 100 < 20 else n % 10, "th")
+
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
@@ -37,7 +40,7 @@ def sign_up():
         user.get_token(user.username)
         db.session.add(user)
         db.session.commit()
-        flash("Congratulations, you are now a registered user! Here is your token: {}".format(user.token))
+        flash("Congratulations, you are our {} registered user! Here is your token: {}".format(ordinaltg(user.id),user.token))
         return redirect(url_for('views.home'))
     return render_template('signup.html', title='Register', form=form,user=current_user)
 
