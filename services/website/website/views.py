@@ -10,7 +10,7 @@ from PIL import Image
 import requests
 from urllib.parse import urlparse
 from werkzeug.utils import secure_filename
-
+from datetime import datetime
 views = Blueprint("views", __name__)
 
 IMAGE_LOAD_URL="http://127.0.0.1:8080"
@@ -66,10 +66,11 @@ def create_post():
                 
                 filename=secure_filename(form.picture.data.filename)
                 if allowed_file(filename):
-                    last_post=Post.query.order_by(Post.id.desc()).first()
-                    id=last_post.id+1
+                    
                     name,ext = os.path.splitext(filename)
-                    image_fn = str(id) + ext
+                    now = datetime.now()
+                    current_time = now.strftime("%H%M%S")
+                    image_fn = str(current_user.id)+current_time + ext
 
                     image_url = IMAGE_LOAD_URL+'/upload'
                 
@@ -100,10 +101,10 @@ def create_post():
                         raise Exception
                     else:
                         content_type = response.headers.get("content-type")
-                        last_post=Post.query.order_by(Post.id.desc()).first()
-                        id=last_post.id+1
                         name,ext = os.path.splitext(filename)
-                        image_fn = str(id) + ext
+                        now = datetime.now()
+                        current_time = now.strftime("%H%M%S")
+                        image_fn = str(current_user.id)+current_time + ext
                         image_url = IMAGE_LOAD_URL+'/upload'
                         post_response = requests.post(image_url,
                                     files={'file': (image_fn, BytesIO(response.content),content_type)})

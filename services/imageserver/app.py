@@ -35,12 +35,10 @@ def upload():
         else:
             raise TypeError
     except TypeError:
-        
         response = {'status': 'Error'}
         response['message'] = 'Unsupported file type'
         return make_response(jsonify(response), 415)
     except Exception as e:
-        
         response = {'status': 'Error'}
         response['message'] = 'Failed to upload image'
         return make_response(jsonify(response), 500)
