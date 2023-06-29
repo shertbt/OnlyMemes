@@ -649,6 +649,7 @@ class FakeSession(requests.Session):
                 
 def info():
     print('{"vulns": 5, "timeout": 40, "attack_data": ""}', flush=True, end="")
+    #print("vulns: 1:1:1:1:1", flush=True, end="")
     exit(101)
 
 def _log(obj):
