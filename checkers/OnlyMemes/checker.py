@@ -105,7 +105,7 @@ def sign_up(s, username, email, password):
         die(ExitStatus.MUMBLE, f"Unexpected /sign_up code {r.status_code}")
 
     try:
-        token = re.search(r'Congratulations, you are now a registered user! Here is your token: (.*)', r.text).group(1)
+        token = re.search(r'Here is your token: (.*)', r.text).group(1)
     except Exception as e:
         die(ExitStatus.MUMBLE, f"Failed to get token after register in service: {e}")
     return token

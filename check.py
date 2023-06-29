@@ -66,7 +66,7 @@ class ColorType(Enum):
 
 def generate_flag(name):
     alph = string.ascii_uppercase + string.digits
-    return name[0].upper() + ''.join(random.choices(alph, k=30)) + '='
+    return "TEAM001_" + ''.join(random.choices(alph, k=32))
 
 
 def colored_log(*messages, color: ColorType = ColorType.INFO):
