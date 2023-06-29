@@ -71,4 +71,7 @@ https://github.com/shertbt/OnlyMemes/blob/master/checkers/OnlyMemes/checker.py#L
 * раскомментировать эту
 https://github.com/shertbt/OnlyMemes/blob/master/checkers/OnlyMemes/checker.py#L652
 
-
+## Contributors
+@shertbt
+@arinaenyut
+@Egor Ruban
