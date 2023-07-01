@@ -1,5 +1,4 @@
-names==0.3.0
-Random-Word==1.0.11
+Faker==18.11.2
 beautifulsoup4==4.12.2
 pytesseract==0.3.10
 Pillow==9.5.0

@@ -11,8 +11,7 @@ import re
 from enum import Enum
 from sys import argv
 import requests
-import names
-from random_word import RandomWords
+from faker import Faker
 from bs4 import BeautifulSoup
 from generator import string_to_bf
 import pytesseract                                                                                                  
@@ -76,7 +75,8 @@ def check(host: str):
     die(ExitStatus.OK, "Check ALL OK")
 
 def create_user():
-    username = names.get_first_name() + "_" +generate_rand(5)
+    fake = Faker()
+    username = fake.first_name() + "_" +generate_rand(5)
     email = f"{generate_rand(5)}@{generate_rand(5)}.{generate_rand(3)}"
     password = generate_rand(5)
     return username, email, password
@@ -323,11 +323,8 @@ def check_bio(s, username, bio_priv, token = "", host = ""):
         return r.text
  
 def gen_bio():
-    r = RandomWords()
-    bio = ""
-    for i in range(random.randint(3,10)):
-        bio += r.get_random_word() + " "
-    return bio
+    fake = Faker()
+    return fake.sentence(nb_words=random.randint(5,10))
 
 def post_flag(s, flag):
     flag2 = ' '.join(str(ord(c)) for c in flag[:19])
